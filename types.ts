@@ -16,6 +16,7 @@ export interface Habit {
   difficulty: 'Easy' | 'Medium' | 'Hard';
   category: 'Mind' | 'Body' | 'Spirit' | 'Work';
   history: Record<string, HabitHistory>;
+  activeMonths: string[]; // List of months where this habit is active
 }
 
 export interface HabitTemplate {
@@ -39,9 +40,14 @@ export interface Goal {
   completed: boolean;
 }
 
+export interface MonthlyGoalItem {
+  text: string;
+  completed: boolean;
+}
+
 export interface MonthlyGoal {
   month: string;
-  goals: string[];
+  goals: MonthlyGoalItem[];
 }
 
 export interface WeeklyGoal {
@@ -52,11 +58,12 @@ export interface WeeklyGoal {
 
 export interface AnnualCategory {
   name: string;
-  goals: string[];
+  goals: { text: string; completed: boolean }[];
 }
 
 export interface PlannerConfig {
   year: string;
   showVisionBoard: boolean;
   activeMonths: string[];
+  manifestationText?: string;
 }

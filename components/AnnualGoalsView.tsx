@@ -61,7 +61,9 @@ export const AnnualGoalsView: React.FC<AnnualGoalsViewProps> = ({
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-10">
           {categories.map((cat, i) => {
-            const progress = 30 + (i * 12) % 60; 
+            const completedCount = cat.goals.filter(g => g.completed).length;
+            const progress = cat.goals.length > 0 ? Math.round((completedCount / cat.goals.length) * 100) : 0;
+            
             return (
               <div key={i} className="bg-white border border-gray-200 rounded-sm p-6 md:p-8 shadow-sm relative group">
                 <button onClick={() => onDeleteCategory(i)} className="absolute top-4 right-4 text-gray-300 hover:text-red-400 text-xs">✕</button>
@@ -99,21 +101,40 @@ export const AnnualGoalsView: React.FC<AnnualGoalsViewProps> = ({
                 
                 <div className="flex justify-between items-center mb-4">
                   <span className="text-[10px] font-bold text-gray-300 uppercase">Objectives</span>
-                  <button onClick={() => onUpdateCategory(i, { goals: [...cat.goals, 'New Milestone'] })} className="text-[10px] font-black text-[#76C7C0] hover:underline">+ ADD</button>
+                  <button onClick={() => onUpdateCategory(i, { goals: [...cat.goals, { text: 'New Milestone', completed: false }] })} className="text-[10px] font-black text-[#76C7C0] hover:underline">+ ADD</button>
                 </div>
 
-                <ul className="space-y-3">
+                <ul className="space-y-4">
                     {cat.goals.map((g, idx) => (
-                      <li key={idx} className="flex items-center gap-3">
+                      <li key={idx} className="flex items-start gap-3 group/item">
+                        <button 
+                          onClick={() => {
+                            const newGoals = [...cat.goals];
+                            newGoals[idx] = { ...g, completed: !g.completed };
+                            onUpdateCategory(i, { goals: newGoals });
+                          }}
+                          className={`w-4 h-4 rounded border flex-shrink-0 mt-0.5 flex items-center justify-center transition-all ${g.completed ? 'bg-emerald-500 border-emerald-500 text-white' : 'border-gray-200 bg-white'}`}
+                        >
+                          {g.completed && <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="4" d="M5 13l4 4L19 7" /></svg>}
+                        </button>
                         <input 
-                          className="text-[11px] font-semibold flex-1 bg-transparent outline-none border-b border-transparent focus:border-gray-50" 
-                          value={g}
+                          className={`text-[11px] flex-1 bg-transparent outline-none border-b border-transparent focus:border-gray-50 leading-snug ${g.completed ? 'text-gray-300 line-through' : 'text-gray-700 font-bold'}`} 
+                          value={g.text}
                           onChange={(e) => {
                             const newGoals = [...cat.goals];
-                            newGoals[idx] = e.target.value;
+                            newGoals[idx] = { ...g, text: e.target.value };
                             onUpdateCategory(i, { goals: newGoals });
                           }}
                         />
+                        <button 
+                          onClick={() => {
+                            const newGoals = cat.goals.filter((_, gi) => gi !== idx);
+                            onUpdateCategory(i, { goals: newGoals });
+                          }}
+                          className="text-gray-100 hover:text-red-400 opacity-0 group-hover/item:opacity-100 transition-all text-[8px]"
+                        >
+                          ✕
+                        </button>
                       </li>
                     ))}
                 </ul>
@@ -153,9 +174,19 @@ export const AnnualGoalsView: React.FC<AnnualGoalsViewProps> = ({
               </div>
               <div className="space-y-4">
                 {getWeekGoals(selectedMonthForWeekly, weekIdx).map((goal, gIdx) => (
-                  <div key={gIdx} className="relative">
+                  <div key={gIdx} className="relative flex items-center gap-2">
+                     <button 
+                        onClick={() => {
+                          const currentGoals = [...getWeekGoals(selectedMonthForWeekly, weekIdx)];
+                          currentGoals[gIdx] = { ...goal, completed: !goal.completed };
+                          onUpdateWeeklyGoals(selectedMonthForWeekly, weekIdx, currentGoals);
+                        }}
+                        className={`w-3.5 h-3.5 rounded border flex-shrink-0 flex items-center justify-center transition-all ${goal.completed ? 'bg-emerald-500 border-emerald-500 text-white' : 'border-gray-200 bg-white'}`}
+                      >
+                        {goal.completed && <svg className="w-2 h-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="4" d="M5 13l4 4L19 7" /></svg>}
+                      </button>
                     <input 
-                      className="w-full bg-transparent text-[11px] font-bold text-gray-600 outline-none border-b border-transparent focus:border-gray-100"
+                      className={`w-full bg-transparent text-[11px] outline-none border-b border-transparent focus:border-gray-100 transition-all ${goal.completed ? 'text-gray-300 line-through' : 'text-gray-600 font-bold'}`}
                       value={goal.text}
                       onChange={(e) => handleWeeklyGoalChange(weekIdx, gIdx, e.target.value)}
                     />

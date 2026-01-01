@@ -24,6 +24,9 @@ export const HabitMatrix: React.FC<HabitMatrixProps> = ({
   const daysInMonth = new Date(parseInt(year), monthIndex + 1, 0).getDate();
   const days = Array.from({ length: daysInMonth }, (_, i) => i + 1);
   
+  // Filter habits active for this specific month
+  const activeHabits = habits.filter(h => (h.activeMonths || []).includes(month));
+
   const getWeekdayInitial = (day: number) => {
     const date = new Date(parseInt(year), monthIndex, day);
     const dayNames = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
@@ -31,13 +34,13 @@ export const HabitMatrix: React.FC<HabitMatrixProps> = ({
   };
 
   const getDayProgress = (day: number) => {
-    const total = habits.length;
-    const completed = habits.filter(h => h.history[month]?.[day]).length;
-    return Math.round((completed / total) * 100) || 0;
+    if (activeHabits.length === 0) return 0;
+    const completed = activeHabits.filter(h => h.history[month]?.[day]).length;
+    return Math.round((completed / activeHabits.length) * 100) || 0;
   };
 
   return (
-    <div className="space-y-6 md:space-y-12">
+    <div className="space-y-6 md:space-y-12 animate-in fade-in duration-700">
       <div className="text-center px-4">
         <h2 className="text-2xl md:text-3xl font-bold text-gray-700 tracking-[0.1em] uppercase">{month} {year}</h2>
         <div className="w-24 md:w-40 h-1 bg-[#76C7C0] mx-auto mt-2" />
@@ -65,13 +68,13 @@ export const HabitMatrix: React.FC<HabitMatrixProps> = ({
                            {weekData.goals.map((goal, gIdx) => (
                              <li 
                               key={gIdx} 
-                              className="flex items-start gap-2 group cursor-pointer active:opacity-60"
+                              className="flex items-start gap-2 group cursor-pointer active:opacity-60 transition-opacity"
                               onClick={() => onUpdateWeeklyGoalStatus(weekIdx, gIdx, !goal.completed)}
                              >
                                 <div className={`w-4 h-4 border rounded-sm flex-shrink-0 mt-0.5 flex items-center justify-center transition-colors ${goal.completed ? 'bg-emerald-500 border-emerald-500' : 'border-gray-700'}`}>
                                   {goal.completed && <svg className="w-2.5 h-2.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="4" d="M5 13l4 4L19 7" /></svg>}
                                 </div>
-                                <span className={`text-[11px] leading-tight ${goal.completed ? 'text-gray-500 line-through' : 'text-gray-200'}`}>{goal.text}</span>
+                                <span className={`text-[11px] leading-tight transition-colors ${goal.completed ? 'text-gray-500 line-through' : 'text-gray-200'}`}>{goal.text}</span>
                              </li>
                            ))}
                         </ul>
@@ -98,7 +101,7 @@ export const HabitMatrix: React.FC<HabitMatrixProps> = ({
                 </tr>
               </thead>
               <tbody>
-                {habits.map((habit) => (
+                {activeHabits.length > 0 ? activeHabits.map((habit) => (
                   <tr key={habit.id}>
                     <td className="sticky left-0 bg-white z-10 text-[11px] md:text-[12px] py-3 md:py-4 border-r-2 border-gray-200 font-bold text-gray-700">
                       <div className="flex items-start gap-2 md:gap-3 pl-2 md:pl-4">
@@ -127,23 +130,31 @@ export const HabitMatrix: React.FC<HabitMatrixProps> = ({
                       );
                     })}
                   </tr>
-                ))}
-                <tr className="bg-gray-50">
-                  <td className="sticky left-0 bg-gray-50 z-10 text-[8px] md:text-[9px] font-black uppercase text-gray-400 pl-2 md:pl-4 py-3">Score (%)</td>
-                  {days.map(day => (
-                    <td key={day} className="py-2">
-                       <div className="flex flex-col items-center gap-1">
-                          <div className="w-[14px] md:w-[18px] h-10 md:h-12 bg-gray-200 rounded-sm relative overflow-hidden">
-                            <div 
-                              className="absolute bottom-0 left-0 right-0 bg-[#76C7C0] transition-all duration-500"
-                              style={{ height: `${getDayProgress(day)}%` }}
-                            />
-                          </div>
-                          <span className="text-[7px] md:text-[8px] font-black text-gray-500">{getDayProgress(day)}%</span>
-                       </div>
+                )) : (
+                  <tr>
+                    <td colSpan={days.length + 1} className="py-20 text-center text-gray-300 font-black uppercase tracking-widest text-[10px]">
+                      No active protocols for {month}. Configuration required in Setup.
                     </td>
-                  ))}
-                </tr>
+                  </tr>
+                )}
+                {activeHabits.length > 0 && (
+                  <tr className="bg-gray-50">
+                    <td className="sticky left-0 bg-gray-50 z-10 text-[8px] md:text-[9px] font-black uppercase text-gray-400 pl-2 md:pl-4 py-3">Score (%)</td>
+                    {days.map(day => (
+                      <td key={day} className="py-2">
+                        <div className="flex flex-col items-center gap-1">
+                            <div className="w-[14px] md:w-[18px] h-10 md:h-12 bg-gray-200 rounded-sm relative overflow-hidden">
+                              <div 
+                                className="absolute bottom-0 left-0 right-0 bg-[#76C7C0] transition-all duration-500"
+                                style={{ height: `${getDayProgress(day)}%` }}
+                              />
+                            </div>
+                            <span className="text-[7px] md:text-[8px] font-black text-gray-500">{getDayProgress(day)}%</span>
+                        </div>
+                      </td>
+                    ))}
+                  </tr>
+                )}
               </tbody>
             </table>
           </div>

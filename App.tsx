@@ -1,252 +1,320 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { HabitMatrix } from './components/HabitMatrix.tsx';
 import { SetupView } from './components/SetupView.tsx';
 import { AnnualGoalsView } from './components/AnnualGoalsView.tsx';
-import { DashboardView } from './components/DashboardView.tsx';
-import { INITIAL_HABITS, MONTHLY_GOALS, ANNUAL_CATEGORIES } from './constants.tsx';
+import { Dashboard as MainDashboard } from './pages/Dashboard.tsx';
+import { LandingPage } from './pages/LandingPage.tsx';
+import { AuthView } from './components/AuthView.tsx';
+import { CreateHabitModal } from './components/CreateHabitModal.tsx';
+import { INITIAL_HABITS, MONTHLY_GOALS, ANNUAL_CATEGORIES, MONTHS_LIST } from './constants.tsx';
+import { auth, db } from './services/firebase.ts';
 import { Habit, Tab, MonthlyGoal, AnnualCategory, PlannerConfig, WeeklyGoal } from './types.ts';
 
-// Storage Keys
-const STORAGE_KEYS = {
-  HABITS: 'habitos_habits_v1',
-  MONTHLY_GOALS: 'habitos_monthly_goals_v1',
-  WEEKLY_GOALS: 'habitos_weekly_goals_v1',
-  ANNUAL_CATEGORIES: 'habitos_annual_categories_v1',
-  CONFIG: 'habitos_config_v1',
-};
-
 const App: React.FC = () => {
-  // Persistence Helper
-  const getInitialState = <T,>(key: string, defaultValue: T): T => {
-    const saved = localStorage.getItem(key);
-    if (saved) {
-      try {
-        return JSON.parse(saved);
-      } catch (e) {
-        console.error(`Error parsing storage for ${key}`, e);
-      }
-    }
-    return defaultValue;
-  };
+  const [user, setUser] = useState<any>(null);
+  const [authLoading, setAuthLoading] = useState(true);
+  const [hasStarted, setHasStarted] = useState(() => {
+    return localStorage.getItem('habitos_has_started') === 'true';
+  });
+  const [activeTab, setActiveTab] = useState<Tab>('Dashboard');
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [syncing, setSyncing] = useState(false);
+  const [dismissedWarning, setDismissedWarning] = useState(false);
 
-  const [habits, setHabits] = useState<Habit[]>(() => getInitialState(STORAGE_KEYS.HABITS, INITIAL_HABITS));
-  const [monthlyGoals, setMonthlyGoals] = useState<MonthlyGoal[]>(() => getInitialState(STORAGE_KEYS.MONTHLY_GOALS, MONTHLY_GOALS));
-  const [weeklyGoals, setWeeklyGoals] = useState<WeeklyGoal[]>(() => getInitialState(STORAGE_KEYS.WEEKLY_GOALS, []));
-  const [annualCategories, setAnnualCategories] = useState<AnnualCategory[]>(() => getInitialState(STORAGE_KEYS.ANNUAL_CATEGORIES, ANNUAL_CATEGORIES));
-  const [config, setConfig] = useState<PlannerConfig>(() => getInitialState(STORAGE_KEYS.CONFIG, {
+  // App State
+  const [habits, setHabits] = useState<Habit[]>(INITIAL_HABITS);
+  const [monthlyGoals, setMonthlyGoals] = useState<MonthlyGoal[]>(MONTHLY_GOALS);
+  const [weeklyGoals, setWeeklyGoals] = useState<WeeklyGoal[]>([]);
+  const [annualCategories, setAnnualCategories] = useState<AnnualCategory[]>(ANNUAL_CATEGORIES);
+  const [config, setConfig] = useState<PlannerConfig>({
     year: '2026',
     showVisionBoard: true,
     activeMonths: ['January'],
-  }));
-  const [activeTab, setActiveTab] = useState<Tab>('January');
+    manifestationText: "Write your strategic vision here. Manifest the elite architecture of your future life.",
+  });
 
-  // Persistence Effects
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEYS.HABITS, JSON.stringify(habits));
-  }, [habits]);
+  // Check if we are showing dummy data
+  const isDummyData = habits.length > 0 && habits[0].id === '1' && habits[0].name === INITIAL_HABITS[0].name;
 
+  // Listen for Auth changes
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEYS.MONTHLY_GOALS, JSON.stringify(monthlyGoals));
-  }, [monthlyGoals]);
+    const unsubscribe = auth.onAuthStateChanged((currentUser) => {
+      setUser(currentUser);
+      setAuthLoading(false);
+    });
+    return () => unsubscribe();
+  }, []);
 
+  // Sync data from Firestore
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEYS.WEEKLY_GOALS, JSON.stringify(weeklyGoals));
-  }, [weeklyGoals]);
+    if (!user) return;
+    const docRef = db.collection('users').doc(user.uid);
+    const unsubscribe = docRef.onSnapshot((doc) => {
+      if (doc.exists) {
+        const data = doc.data();
+        if (data) {
+          if (data.habits && data.habits.length > 0) setHabits(data.habits);
+          if (data.monthlyGoals) setMonthlyGoals(data.monthlyGoals);
+          if (data.weeklyGoals) setWeeklyGoals(data.weeklyGoals);
+          if (data.annualCategories) setAnnualCategories(data.annualCategories);
+          if (data.config) setConfig(prev => ({ ...prev, ...data.config }));
+        }
+      }
+    });
+    return () => unsubscribe();
+  }, [user]);
 
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEYS.ANNUAL_CATEGORIES, JSON.stringify(annualCategories));
-  }, [annualCategories]);
+  const syncToCloud = async (updates: any) => {
+    if (!user) return;
+    setSyncing(true);
+    try {
+      await db.collection('users').doc(user.uid).update(updates);
+    } catch (e) {
+      console.error("Sync Error:", e);
+    } finally {
+      setSyncing(false);
+    }
+  };
 
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEYS.CONFIG, JSON.stringify(config));
-    document.title = `${config.year} Habit Tracker - Strategic Architecture`;
-  }, [config]);
+  const updateHabits = (newHabits: Habit[] | ((prev: Habit[]) => Habit[])) => {
+    setHabits((prev) => {
+      const updated = typeof newHabits === 'function' ? newHabits(prev) : newHabits;
+      syncToCloud({ habits: updated });
+      return updated;
+    });
+  };
 
   const toggleHabitCell = (habitId: string, day: number, month: string) => {
-    setHabits(prev => prev.map(h => {
+    updateHabits(prev => prev.map(h => {
       if (h.id === habitId) {
         const monthHistory = h.history[month] || {};
         const newHistory = { ...monthHistory, [day]: !monthHistory[day] };
-        return { 
-          ...h, 
-          history: { ...h.history, [month]: newHistory } 
-        };
+        return { ...h, history: { ...h.history, [month]: newHistory } };
       }
       return h;
     }));
   };
 
-  const updateHabit = (id: string, updates: Partial<Habit>) => {
-    setHabits(prev => prev.map(h => h.id === id ? { ...h, ...updates } : h));
+  const handleClearDummyData = () => {
+    if (confirm("Are you sure you want to purge all initial mock architecture? This will delete all demo habits, goals, and milestones.")) {
+      setHabits([]);
+      setMonthlyGoals([]);
+      setAnnualCategories([]);
+      setWeeklyGoals([]);
+      syncToCloud({
+        habits: [],
+        monthlyGoals: [],
+        annualCategories: [],
+        weeklyGoals: []
+      });
+      setDismissedWarning(true);
+    }
   };
 
-  const deleteHabit = (id: string) => {
-    setHabits(prev => prev.filter(h => h.id !== id));
-  };
-
-  const addHabit = () => {
-    const newHabit: Habit = {
-      id: Math.random().toString(36).substr(2, 9),
-      name: 'New Habit',
-      emoji: '✨',
-      completed: false,
-      streak: 0,
-      difficulty: 'Medium',
-      category: 'Work',
-      history: {}
-    };
-    setHabits([...habits, newHabit]);
-  };
-
-  const updateMonthlyGoals = (month: string, goals: string[]) => {
-    setMonthlyGoals(prev => prev.map(m => m.month === month ? { ...m, goals } : m));
-  };
-
-  const updateWeeklyGoals = (month: string, weekIndex: number, goals: { text: string; completed: boolean }[]) => {
-    setWeeklyGoals(prev => {
-      const existing = prev.find(w => w.month === month && w.weekIndex === weekIndex);
-      if (existing) {
-        return prev.map(w => (w.month === month && w.weekIndex === weekIndex) ? { ...w, goals } : w);
-      }
-      return [...prev, { month, weekIndex, goals }];
-    });
-  };
-
-  const addMonthlyGoalContainer = (month: string) => {
-    if (monthlyGoals.find(m => m.month === month)) return;
-    setMonthlyGoals(prev => [...prev, { month, goals: ['New Target'] }]);
-  };
-
-  const deleteMonthlyGoalContainer = (month: string) => {
-    setMonthlyGoals(prev => prev.filter(m => m.month !== month));
-  };
-
-  const updateAnnualCategory = (index: number, updates: Partial<AnnualCategory>) => {
-    setAnnualCategories(prev => prev.map((c, i) => i === index ? { ...c, ...updates } : c));
-  };
-
-  const addAnnualCategory = () => {
-    setAnnualCategories(prev => [...prev, { name: 'New Category', goals: ['First Milestone'] }]);
-  };
-
-  const deleteAnnualCategory = (index: number) => {
-    setAnnualCategories(prev => prev.filter((_, i) => i !== index));
-  };
+  const handleLogout = () => auth.signOut();
 
   const renderContent = () => {
-    if (activeTab === 'Setup') {
-      return (
-        <SetupView 
-          habits={habits} 
-          onUpdateHabit={updateHabit}
-          onDeleteHabit={deleteHabit}
-          onAddHabit={addHabit}
-          monthlyGoals={monthlyGoals}
-          onUpdateMonthlyGoals={updateMonthlyGoals}
-          onAddMonthlyGoalContainer={addMonthlyGoalContainer}
-          onDeleteMonthlyGoalContainer={deleteMonthlyGoalContainer}
-          config={config}
-          onUpdateConfig={setConfig}
-        />
-      );
+    switch (activeTab) {
+      case 'Setup':
+        return (
+          <SetupView 
+            isDummyData={isDummyData}
+            onClearDummyData={handleClearDummyData}
+            habits={habits} 
+            onUpdateHabit={(id, updates) => updateHabits(habits.map(h => h.id === id ? { ...h, ...updates } : h))}
+            onDeleteHabit={(id) => updateHabits(habits.filter(h => h.id !== id))}
+            onAddHabit={() => setIsAddModalOpen(true)}
+            monthlyGoals={monthlyGoals}
+            onUpdateMonthlyGoals={(month, goals) => {
+              const newGoals = monthlyGoals.map(m => m.month === month ? { ...m, goals } : m);
+              setMonthlyGoals(newGoals);
+              syncToCloud({ monthlyGoals: newGoals });
+            }}
+            onAddMonthlyGoalContainer={(month) => {
+              if (monthlyGoals.find(m => m.month === month)) return;
+              const newGoals = [...monthlyGoals, { month, goals: [{ text: 'New Target', completed: false }] }];
+              setMonthlyGoals(newGoals);
+              syncToCloud({ monthlyGoals: newGoals });
+            }}
+            onDeleteMonthlyGoalContainer={(month) => {
+              const newGoals = monthlyGoals.filter(m => m.month !== month);
+              setMonthlyGoals(newGoals);
+              syncToCloud({ monthlyGoals: newGoals });
+            }}
+            config={config}
+            onUpdateConfig={(newConf) => {
+              setConfig(newConf);
+              syncToCloud({ config: newConf });
+            }}
+          />
+        );
+      case 'Annual Goals':
+        return (
+          <AnnualGoalsView 
+            year={config.year}
+            categories={annualCategories} 
+            onUpdateCategory={(index, updates) => {
+              const newCats = annualCategories.map((c, i) => i === index ? { ...c, ...updates } : c);
+              setAnnualCategories(newCats);
+              syncToCloud({ annualCategories: newCats });
+            }}
+            onAddCategory={() => {
+              const newCats = [...annualCategories, { name: 'New Category', goals: [{ text: 'First Milestone', completed: false }] }];
+              setAnnualCategories(newCats);
+              syncToCloud({ annualCategories: newCats });
+            }}
+            onDeleteCategory={(index) => {
+              const newCats = annualCategories.filter((_, i) => i !== index);
+              setAnnualCategories(newCats);
+              syncToCloud({ annualCategories: newCats });
+            }}
+            weeklyGoals={weeklyGoals}
+            onUpdateWeeklyGoals={(month, weekIndex, goals) => {
+              const existing = weeklyGoals.find(w => w.month === month && w.weekIndex === weekIndex);
+              let newWeekly;
+              if (existing) {
+                newWeekly = weeklyGoals.map(w => (w.month === month && w.weekIndex === weekIndex) ? { ...w, goals } : w);
+              } else {
+                newWeekly = [...weeklyGoals, { month, weekIndex, goals }];
+              }
+              setWeeklyGoals(newWeekly);
+              syncToCloud({ weeklyGoals: newWeekly });
+            }}
+          />
+        );
+      case 'Dashboard':
+        return (
+          <MainDashboard 
+            habits={habits} 
+            config={config}
+            onUpdateConfig={(newConf) => {
+              setConfig(newConf);
+              syncToCloud({ config: newConf });
+            }}
+            onAddClick={() => setIsAddModalOpen(true)} 
+          />
+        );
+      default:
+        if (MONTHS_LIST.includes(activeTab as string)) {
+          return (
+            <HabitMatrix 
+              month={activeTab}
+              year={config.year}
+              habits={habits} 
+              weeklyGoals={weeklyGoals.filter(w => w.month === activeTab)}
+              onUpdateWeeklyGoalStatus={(weekIdx, goalIdx, completed) => {
+                const currentWeek = weeklyGoals.find(w => w.month === activeTab && w.weekIndex === weekIdx);
+                if (currentWeek) {
+                  const newGoals = [...currentWeek.goals];
+                  newGoals[goalIdx] = { ...newGoals[goalIdx], completed };
+                  const newWeekly = weeklyGoals.map(w => (w.month === activeTab && w.weekIndex === weekIdx) ? { ...w, goals: newGoals } : w);
+                  setWeeklyGoals(newWeekly);
+                  syncToCloud({ weeklyGoals: newWeekly });
+                }
+              }}
+              onToggleCell={(id, day) => toggleHabitCell(id, day, activeTab)} 
+            />
+          );
+        }
+        return <div className="p-20 text-center font-bold text-gray-400">Section not found.</div>;
     }
-    
-    if (activeTab === 'Annual Goals' && config.showVisionBoard) {
-      return (
-        <AnnualGoalsView 
-          year={config.year}
-          categories={annualCategories} 
-          onUpdateCategory={updateAnnualCategory}
-          onAddCategory={addAnnualCategory}
-          onDeleteCategory={deleteAnnualCategory}
-          weeklyGoals={weeklyGoals}
-          onUpdateWeeklyGoals={updateWeeklyGoals}
-        />
-      );
-    }
-
-    if (activeTab === 'Dashboard') {
-      return (
-        <DashboardView 
-          habits={habits} 
-          currentMonth={config.activeMonths[0] || 'January'} 
-          weeklyGoals={weeklyGoals}
-          annualCategories={annualCategories}
-        />
-      );
-    }
-
-    if (config.activeMonths.includes(activeTab)) {
-      return (
-        <HabitMatrix 
-          month={activeTab}
-          year={config.year}
-          habits={habits} 
-          weeklyGoals={weeklyGoals.filter(w => w.month === activeTab)}
-          onUpdateWeeklyGoalStatus={(weekIdx, goalIdx, completed) => {
-            const currentWeek = weeklyGoals.find(w => w.month === activeTab && w.weekIndex === weekIdx);
-            if (currentWeek) {
-              const newGoals = [...currentWeek.goals];
-              newGoals[goalIdx] = { ...newGoals[goalIdx], completed };
-              updateWeeklyGoals(activeTab, weekIdx, newGoals);
-            }
-          }}
-          onToggleCell={(id, day) => toggleHabitCell(id, day, activeTab)} 
-        />
-      );
-    }
-
-    return <div className="p-20 text-center font-bold text-gray-400">Section not found. Select a tab below.</div>;
   };
 
-  const availableTabs: Tab[] = [
-    'Setup',
-    ...(config.showVisionBoard ? ['Annual Goals'] : []),
-    ...config.activeMonths,
-    'Dashboard'
-  ];
+  if (authLoading) return null;
+
+  if (!hasStarted) return <LandingPage onStart={() => setHasStarted(true)} />;
+  if (!user) return <AuthView onSuccess={() => {}} onBack={() => setHasStarted(false)} />;
+
+  // Define the chronological list of tabs
+  const mainTabs = ['Dashboard', 'Setup'];
+  if (config.showVisionBoard) mainTabs.push('Annual Goals');
+  const monthTabs = config.activeMonths || [];
+  const allTabs = [...mainTabs, ...monthTabs];
 
   return (
-    <div className="min-h-screen pb-20">
-      <div className="planner-container">
-        <div className="flex justify-between items-end mb-10 pb-6 border-b border-gray-200">
-          <div>
-            <h1 className="text-6xl font-handwritten text-[#374151]">{config.year} Habit Tracker</h1>
-            <p className="text-[10px] font-black uppercase tracking-[0.4em] text-gray-400 mt-2">
-              Strategic Life Architecture & Performance Ledger
-            </p>
-          </div>
-          <div className="text-right">
-             <div className="bg-[#76C7C0] text-white px-6 py-2 rounded-sm text-xs font-bold uppercase mb-1">Year of Discipline</div>
-             <p className="text-sm font-bold text-gray-600">Active Cycle: {activeTab}</p>
+    <div className="min-h-screen pb-32">
+      {/* Operational Advisory Banner */}
+      {isDummyData && !dismissedWarning && (
+        <div className="bg-amber-50 border-b border-amber-200 py-3 px-6 md:px-12 animate-in fade-in slide-in-from-top duration-700">
+          <div className="max-w-[1400px] mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
+            <div className="flex items-center gap-4">
+              <div className="relative">
+                <div className="w-2.5 h-2.5 bg-emerald-500 rounded-full animate-ping" />
+                <div className="absolute inset-0 w-2.5 h-2.5 bg-emerald-500 rounded-full" />
+              </div>
+              <p className="text-[10px] md:text-[11px] font-black text-amber-900 uppercase tracking-[0.2em] leading-relaxed text-center md:text-left">
+                Operational Advisory: System is utilizing architectural mock data. Initialize your private performance ledger in the <span className="text-emerald-700 underline decoration-2 underline-offset-4 font-black">Setup tab</span> to begin execution.
+              </p>
+            </div>
+            <div className="flex items-center gap-6">
+              <button 
+                onClick={() => { setActiveTab('Setup'); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+                className="text-[10px] font-black text-emerald-700 hover:text-emerald-900 uppercase tracking-widest border-b-2 border-emerald-200 transition-all pb-0.5"
+              >
+                Configure Setup
+              </button>
+              <button 
+                onClick={() => setDismissedWarning(true)}
+                className="text-amber-400 hover:text-amber-600 transition-colors"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M6 18L18 6M6 6l12 12" /></svg>
+              </button>
+            </div>
           </div>
         </div>
+      )}
+
+      <div className="planner-container">
+        <header className="flex flex-col md:flex-row justify-between items-start md:items-end mb-10 pb-6 border-b border-gray-200 gap-6">
+          <div>
+            <h1 className="text-6xl font-handwritten text-[#374151]">{config.year} NextYou21</h1>
+            <p className="text-[10px] font-black uppercase tracking-[0.4em] text-gray-400 mt-2">Life Architecture Command</p>
+          </div>
+          <div className="flex items-center gap-4">
+             <div className="text-right">
+               <div className={`flex items-center gap-2 ${syncing ? 'bg-amber-400' : 'bg-[#76C7C0]'} text-white px-4 py-1.5 rounded-full text-[9px] font-black uppercase transition-all duration-300`}>
+                 {syncing ? 'Syncing Cloud...' : 'Ledger Connected'}
+               </div>
+               <p className="text-[10px] font-black text-gray-400 mt-2">{user?.displayName}</p>
+             </div>
+             <button onClick={handleLogout} className="p-3 bg-white border border-gray-200 rounded-2xl hover:bg-gray-50 transition-colors shadow-sm">
+               <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7" /></svg>
+             </button>
+          </div>
+        </header>
 
         {renderContent()}
 
-        <div className="fixed bottom-0 left-0 right-0 bg-[#E5E7EB] border-t border-gray-300 flex items-end px-10 z-50 overflow-x-auto no-scrollbar">
-          {availableTabs.map((tab) => (
-            <button
-              key={tab}
-              onClick={() => setActiveTab(tab)}
-              className={`tab-button whitespace-nowrap ${activeTab === tab ? 'active' : ''}`}
-            >
-              {tab}
-            </button>
-          ))}
-          <div className="flex-1" />
-          <div className="flex items-center gap-4 py-2 px-4 bg-white/50 rounded-tl-lg border-l border-t border-gray-300">
-            <div className="w-8 h-8 bg-green-600 rounded flex items-center justify-center text-white text-xl">
-               📊
-            </div>
-            <span className="text-[10px] font-black text-gray-500 uppercase">Architecture Online</span>
+        {isAddModalOpen && (
+          <CreateHabitModal 
+            onClose={() => setIsAddModalOpen(false)} 
+            onSubmit={(data) => {
+              const newHabit: Habit = { ...data, id: Math.random().toString(36).substr(2, 9), completed: false, streak: 0, history: {} };
+              updateHabits([...habits, newHabit]);
+              setIsAddModalOpen(false);
+            }} 
+          />
+        )}
+
+        {/* Linear Chronological Spreadsheet-style Bottom Navigation Bar */}
+        <nav className="fixed bottom-0 left-0 right-0 bg-[#E2E4E7] border-t border-gray-400 z-[60] py-0 px-4 flex items-end h-[46px] overflow-x-auto no-scrollbar shadow-[0_-4px_10px_rgba(0,0,0,0.05)]">
+          <div className="flex items-end h-full">
+            {allTabs.map((tab) => (
+              <button
+                key={tab}
+                onClick={() => setActiveTab(tab)}
+                className={`tab-button ${activeTab === tab ? 'active' : ''}`}
+              >
+                {tab}
+              </button>
+            ))}
           </div>
-        </div>
+          <div className="flex-1 border-b border-gray-400 mb-[-1px]"></div>
+        </nav>
       </div>
     </div>
   );
 };
 
-// Fix: Add default export to resolve import error in index.tsx
 export default App;

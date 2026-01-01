@@ -48,9 +48,6 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ habits, currentMon
     return 'bg-[#C8E6C9]';
   };
 
-  // Filter weekly goals for current month
-  const currentMonthWeeklyGoals = weeklyGoals.filter(w => w.month === currentMonth);
-
   return (
     <div className="animate-in fade-in slide-in-from-bottom-4 duration-700 space-y-6 md:space-y-8 pb-10">
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
@@ -88,7 +85,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ habits, currentMon
         <div className="lg:col-span-8 space-y-6 md:space-y-8">
           <div className="bg-white border border-gray-200 p-4 md:p-8 rounded-sm">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 md:mb-8 gap-4">
-               <h3 className="text-xs font-black uppercase tracking-widest text-gray-400">Neural Momentum Flow</h3>
+               <h3 className="text-xs font-black uppercase tracking-widest text-gray-400">System Momentum Flow</h3>
                <div className="flex gap-2">
                   <span className="w-3 h-3 rounded-full bg-[#76C7C0]" />
                   <span className="text-[10px] font-bold text-gray-400 uppercase">Completions</span>
@@ -122,7 +119,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ habits, currentMon
           </div>
 
           <div className="bg-white border border-gray-200 p-4 md:p-8 rounded-sm">
-            <h3 className="text-xs font-black uppercase tracking-widest text-gray-400 mb-6">Neural Consistency Map</h3>
+            <h3 className="text-xs font-black uppercase tracking-widest text-gray-400 mb-6">System Consistency Map</h3>
             <div className="grid grid-cols-7 gap-1.5 md:gap-4">
               {days.map(d => (
                 <div key={d} className="group relative">
