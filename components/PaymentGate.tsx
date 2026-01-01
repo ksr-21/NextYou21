@@ -127,6 +127,6 @@ export const PaymentGate: React.FC<PaymentGateProps> = ({ onSuccess, userEmail }
           </div>
         </div>
       </div>
-    </div>
+    </div> 
   );
 };
