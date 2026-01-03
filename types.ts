@@ -1,5 +1,4 @@
-
-export type Tab = 'Setup' | 'Annual Goals' | 'Dashboard' | string;
+export type Tab = 'Setup' | 'Annual Goals' | string;
 
 export type HabitMode = 'All' | 'Focus' | 'Low Energy' | 'Growth';
 
@@ -16,7 +15,9 @@ export interface Habit {
   difficulty: 'Easy' | 'Medium' | 'Hard';
   category: 'Mind' | 'Body' | 'Spirit' | 'Work';
   history: Record<string, HabitHistory>;
-  activeMonths: string[]; // List of months where this habit is active
+  activeMonths: string[]; 
+  goal: number;       // Target number of completions (e.g., 31)
+  frequency: string;  // Cadence description (e.g., "7/7")
 }
 
 export interface HabitTemplate {
@@ -30,6 +31,8 @@ export interface HabitTemplate {
     emoji: string;
     category: Habit['category'];
     difficulty: Habit['difficulty'];
+    goal: number;
+    frequency: string;
   }[];
 }
 
@@ -66,4 +69,5 @@ export interface PlannerConfig {
   showVisionBoard: boolean;
   activeMonths: string[];
   manifestationText?: string;
+  tabOrder?: string[];
 }

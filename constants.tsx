@@ -1,4 +1,3 @@
-
 import { Habit, MonthlyGoal, AnnualCategory, HabitTemplate } from './types';
 
 export const MONTHS_LIST = [
@@ -14,20 +13,19 @@ const generateHistory = (probability: number) => {
   return history;
 };
 
-// Initial state for one month (January)
 const initialMonth = "January";
 
 export const INITIAL_HABITS: Habit[] = [
-  { id: '1', name: 'Finish all work tasks by Friday', emoji: '✅', completed: true, streak: 5, difficulty: 'Medium', category: 'Work', history: { [initialMonth]: generateHistory(0.7) }, activeMonths: [...MONTHS_LIST] },
-  { id: '2', name: 'Save a set amount this week', emoji: '💰', completed: true, streak: 12, difficulty: 'Easy', category: 'Work', history: { [initialMonth]: generateHistory(0.9) }, activeMonths: [...MONTHS_LIST] },
-  { id: '3', name: 'Try a new hobby or activity', emoji: '🎨', completed: false, streak: 8, difficulty: 'Medium', category: 'Mind', history: { [initialMonth]: generateHistory(0.4) }, activeMonths: [...MONTHS_LIST] },
-  { id: '4', name: 'Call or visit a family member', emoji: '☎️', completed: true, streak: 20, difficulty: 'Easy', category: 'Spirit', history: { [initialMonth]: generateHistory(0.6) }, activeMonths: [...MONTHS_LIST] },
-  { id: '5', name: 'Exercise for 4-5 days this week', emoji: '🏋️', completed: true, streak: 10, difficulty: 'Medium', category: 'Body', history: { [initialMonth]: generateHistory(0.7) }, activeMonths: [...MONTHS_LIST] },
-  { id: '6', name: 'Limit distractions during work', emoji: '📵', completed: true, streak: 31, difficulty: 'Hard', category: 'Work', history: { [initialMonth]: generateHistory(0.8) }, activeMonths: [...MONTHS_LIST] },
-  { id: '7', name: 'Express gratitude to at least 1 person', emoji: '🙏', completed: false, streak: 3, difficulty: 'Easy', category: 'Spirit', history: { [initialMonth]: generateHistory(0.9) }, activeMonths: [...MONTHS_LIST] },
-  { id: '8', name: 'Learn one new skill or concept', emoji: '💡', completed: true, streak: 7, difficulty: 'Medium', category: 'Mind', history: { [initialMonth]: generateHistory(0.5) }, activeMonths: [...MONTHS_LIST] },
-  { id: '9', name: 'Drink 8 glasses of water daily', emoji: '💧', completed: true, streak: 15, difficulty: 'Easy', category: 'Body', history: { [initialMonth]: generateHistory(0.9) }, activeMonths: [...MONTHS_LIST] },
-  { id: '10', name: 'Walk 10,000 steps daily', emoji: '👟', completed: true, streak: 25, difficulty: 'Medium', category: 'Body', history: { [initialMonth]: generateHistory(0.7) }, activeMonths: [...MONTHS_LIST] },
+  { id: '1', name: 'Finish all work tasks by Friday', emoji: '✅', completed: true, streak: 5, difficulty: 'Medium', category: 'Work', history: { [initialMonth]: generateHistory(0.7) }, activeMonths: [...MONTHS_LIST], goal: 31, frequency: '7/7' },
+  { id: '2', name: 'Save a set amount this week', emoji: '💰', completed: true, streak: 12, difficulty: 'Easy', category: 'Work', history: { [initialMonth]: generateHistory(0.9) }, activeMonths: [...MONTHS_LIST], goal: 31, frequency: '7/7' },
+  { id: '3', name: 'Try a new hobby or activity', emoji: '🎨', completed: false, streak: 8, difficulty: 'Medium', category: 'Mind', history: { [initialMonth]: generateHistory(0.4) }, activeMonths: [...MONTHS_LIST], goal: 31, frequency: '7/7' },
+  { id: '4', name: 'Call or visit a family member', emoji: '☎️', completed: true, streak: 20, difficulty: 'Easy', category: 'Spirit', history: { [initialMonth]: generateHistory(0.6) }, activeMonths: [...MONTHS_LIST], goal: 31, frequency: '7/7' },
+  { id: '5', name: 'Exercise for 4-5 days this week', emoji: '🏋️', completed: true, streak: 10, difficulty: 'Medium', category: 'Body', history: { [initialMonth]: generateHistory(0.7) }, activeMonths: [...MONTHS_LIST], goal: 31, frequency: '7/7' },
+  { id: '6', name: 'Limit distractions during work', emoji: '📵', completed: true, streak: 31, difficulty: 'Hard', category: 'Work', history: { [initialMonth]: generateHistory(0.8) }, activeMonths: [...MONTHS_LIST], goal: 31, frequency: '7/7' },
+  { id: '7', name: 'Express gratitude to at least 1 person', emoji: '🙏', completed: false, streak: 3, difficulty: 'Easy', category: 'Spirit', history: { [initialMonth]: generateHistory(0.9) }, activeMonths: [...MONTHS_LIST], goal: 31, frequency: '7/7' },
+  { id: '8', name: 'Learn one new skill or concept', emoji: '💡', completed: true, streak: 7, difficulty: 'Medium', category: 'Mind', history: { [initialMonth]: generateHistory(0.5) }, activeMonths: [...MONTHS_LIST], goal: 31, frequency: '7/7' },
+  { id: '9', name: 'Drink 8 glasses of water daily', emoji: '💧', completed: true, streak: 15, difficulty: 'Easy', category: 'Body', history: { [initialMonth]: generateHistory(0.9) }, activeMonths: [...MONTHS_LIST], goal: 31, frequency: '7/7' },
+  { id: '10', name: 'Walk 10,000 steps daily', emoji: '👟', completed: true, streak: 25, difficulty: 'Medium', category: 'Body', history: { [initialMonth]: generateHistory(0.7) }, activeMonths: [...MONTHS_LIST], goal: 31, frequency: '7/7' },
 ];
 
 export const MONTHLY_GOALS: MonthlyGoal[] = [
@@ -66,9 +64,9 @@ export const HABIT_TEMPLATES: HabitTemplate[] = [
     icon: '☀️',
     color: 'from-orange-400 to-red-500',
     rituals: [
-      { name: 'Cold Shower', emoji: '🚿', category: 'Body', difficulty: 'Hard' },
-      { name: 'Morning Sun', emoji: '☀️', category: 'Body', difficulty: 'Easy' },
-      { name: 'Daily Planning', emoji: '📝', category: 'Mind', difficulty: 'Medium' },
+      { name: 'Cold Shower', emoji: '🚿', category: 'Body', difficulty: 'Hard', goal: 31, frequency: '7/7' },
+      { name: 'Morning Sun', emoji: '☀️', category: 'Body', difficulty: 'Easy', goal: 31, frequency: '7/7' },
+      { name: 'Daily Planning', emoji: '📝', category: 'Mind', difficulty: 'Medium', goal: 31, frequency: '7/7' },
     ]
   },
   {
@@ -78,9 +76,9 @@ export const HABIT_TEMPLATES: HabitTemplate[] = [
     icon: '🧠',
     color: 'from-blue-400 to-indigo-600',
     rituals: [
-      { name: '90m Deep Work', emoji: '💻', category: 'Work', difficulty: 'Hard' },
-      { name: 'Digital Fast', emoji: '📵', category: 'Mind', difficulty: 'Medium' },
-      { name: 'Review Goals', emoji: '🎯', category: 'Work', difficulty: 'Easy' },
+      { name: '90m Deep Work', emoji: '💻', category: 'Work', difficulty: 'Hard', goal: 31, frequency: '7/7' },
+      { name: 'Digital Fast', emoji: '📵', category: 'Mind', difficulty: 'Medium', goal: 31, frequency: '7/7' },
+      { name: 'Review Goals', emoji: '🎯', category: 'Work', difficulty: 'Easy', goal: 31, frequency: '7/7' },
     ]
   }
 ];

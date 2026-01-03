@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Habit } from '../types';
 import { MONTHS_LIST } from '../constants';
@@ -13,11 +12,13 @@ export const CreateHabitModal: React.FC<CreateHabitModalProps> = ({ onClose, onS
   const [emoji, setEmoji] = useState('✨');
   const [difficulty, setDifficulty] = useState<Habit['difficulty']>('Medium');
   const [category, setCategory] = useState<Habit['category']>('Mind');
+  const [goal, setGoal] = useState<number>(31);
+  const [frequency, setFrequency] = useState<string>('7/7');
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim()) return;
-    onSubmit({ name, emoji, difficulty, category, activeMonths: [...MONTHS_LIST] });
+    onSubmit({ name, emoji, difficulty, category, goal, frequency, activeMonths: [...MONTHS_LIST] });
   };
 
   const categories: { label: Habit['category']; color: string; bg: string; activeBorder: string }[] = [
@@ -49,7 +50,7 @@ export const CreateHabitModal: React.FC<CreateHabitModalProps> = ({ onClose, onS
             </button>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-7">
+          <form onSubmit={handleSubmit} className="space-y-6">
             {/* Name and Emoji */}
             <div className="flex items-center gap-5">
               <div className="relative">
@@ -57,7 +58,7 @@ export const CreateHabitModal: React.FC<CreateHabitModalProps> = ({ onClose, onS
                   type="text"
                   value={emoji}
                   onChange={(e) => setEmoji(e.target.value)}
-                  className="w-16 h-16 text-2xl text-center bg-[#E8F5F4] border-2 border-transparent rounded-3xl focus:border-[#76C7C0] focus:bg-white transition-all outline-none shadow-inner"
+                  className="w-14 h-14 text-2xl text-center bg-[#E8F5F4] border-2 border-transparent rounded-2xl focus:border-[#76C7C0] focus:bg-white transition-all outline-none shadow-inner"
                   maxLength={2}
                 />
               </div>
@@ -74,6 +75,28 @@ export const CreateHabitModal: React.FC<CreateHabitModalProps> = ({ onClose, onS
               </div>
             </div>
 
+            {/* Goal & Frequency Row */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest block italic ml-1">Monthly Goal</label>
+                <input 
+                  type="number"
+                  value={goal}
+                  onChange={(e) => setGoal(parseInt(e.target.value) || 0)}
+                  className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-2.5 text-sm font-black text-slate-800 outline-none focus:border-[#76C7C0]"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest block italic ml-1">Frequency</label>
+                <input 
+                  type="text"
+                  value={frequency}
+                  onChange={(e) => setFrequency(e.target.value)}
+                  className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-2.5 text-sm font-black text-slate-800 outline-none focus:border-[#76C7C0]"
+                />
+              </div>
+            </div>
+
             {/* Category Grid */}
             <div>
               <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest block mb-3 italic">Categorical Filter</label>
@@ -83,34 +106,13 @@ export const CreateHabitModal: React.FC<CreateHabitModalProps> = ({ onClose, onS
                     key={c.label}
                     type="button"
                     onClick={() => setCategory(c.label)}
-                    className={`px-3 py-2.5 rounded-xl text-[9px] font-black transition-all border-2 text-center uppercase tracking-widest ${
+                    className={`px-3 py-2 text-[9px] font-black transition-all border-2 text-center uppercase tracking-widest rounded-xl ${
                       category === c.label 
                         ? `${c.bg} ${c.color} ${c.activeBorder}` 
                         : 'bg-white border-gray-50 text-gray-300 hover:border-gray-200'
                     }`}
                   >
                     {c.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Difficulty Selector */}
-            <div>
-              <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest block mb-3 italic">Execution Load</label>
-              <div className="flex gap-2">
-                {['Easy', 'Medium', 'Hard'].map(d => (
-                  <button
-                    key={d}
-                    type="button"
-                    onClick={() => setDifficulty(d as any)}
-                    className={`flex-1 px-3 py-2.5 rounded-xl text-[9px] font-black transition-all border-2 uppercase tracking-widest ${
-                      difficulty === d 
-                        ? 'bg-gray-900 border-gray-900 text-white shadow-lg' 
-                        : 'bg-white border-gray-50 text-gray-300 hover:border-gray-200'
-                    }`}
-                  >
-                    {d}
                   </button>
                 ))}
               </div>

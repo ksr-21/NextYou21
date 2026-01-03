@@ -15,7 +15,24 @@ interface SetupViewProps {
   onDeleteMonthlyGoalContainer: (month: string) => void;
   config: PlannerConfig;
   onUpdateConfig: (config: PlannerConfig) => void;
+  subscriptionRemaining?: number;
+  allTabs: string[];
 }
+
+const THEME = {
+  bg: '#FDFDFD',
+  sidebarBox: '#FFD8A8',
+  sidebarText: '#8C4B15',
+  sidebarBorder: '#FFC078',
+  blueHeader: '#E0F2FE',
+  blueText: '#0369A1',
+  orangeRow: '#FFF7ED',
+  slateHeader: '#F0F9FF',
+  shadow: 'shadow-[4px_4px_0px_rgba(0,0,0,0.05)]',
+  colors: ['#007ACC', '#5C5C99', '#D4A017', '#C94C4C', '#2E8B57'] 
+};
+
+const CATEGORIES: Habit['category'][] = ['Mind', 'Body', 'Spirit', 'Work'];
 
 export const SetupView: React.FC<SetupViewProps> = ({ 
   isDummyData,
@@ -26,226 +43,275 @@ export const SetupView: React.FC<SetupViewProps> = ({
   onAddHabit,
   monthlyGoals,
   onUpdateMonthlyGoals,
-  onAddMonthlyGoalContainer,
-  onDeleteMonthlyGoalContainer,
   config,
-  onUpdateConfig
+  onUpdateConfig,
+  subscriptionRemaining = 90,
+  allTabs
 }) => {
-  const [isMonthDropdownOpen, setIsMonthDropdownOpen] = useState(false);
   const [selectedConfigMonth, setSelectedConfigMonth] = useState<string>(MONTHS_LIST[0]);
 
-  const toggleMonthGlobal = (month: string) => {
-    const newMonths = config.activeMonths.includes(month)
-      ? config.activeMonths.filter(m => m !== month)
-      : [...config.activeMonths, month];
-    const sorted = MONTHS_LIST.filter(m => newMonths.includes(m));
-    onUpdateConfig({ ...config, activeMonths: sorted });
+  const handleAddMonthlyGoal = (month: string) => {
+    const monthData = monthlyGoals.find(m => m.month === month);
+    if (monthData) {
+      onUpdateMonthlyGoals(month, [...monthData.goals, { text: 'New Target', completed: false }]);
+    } else {
+      onUpdateMonthlyGoals(month, [{ text: 'New Target', completed: false }]);
+    }
+  };
+
+  const handleDeleteMonthlyGoal = (month: string, goalIdx: number) => {
+    const monthData = monthlyGoals.find(m => m.month === month);
+    if (monthData) {
+      const newGoals = monthData.goals.filter((_, i) => i !== goalIdx);
+      onUpdateMonthlyGoals(month, newGoals);
+    }
   };
 
   const toggleHabitForMonth = (habitId: string, month: string) => {
     const habit = habits.find(h => h.id === habitId);
     if (!habit) return;
-    
     const currentActive = habit.activeMonths || [];
     const newActive = currentActive.includes(month)
       ? currentActive.filter(m => m !== month)
       : [...currentActive, month];
-    
     onUpdateHabit(habitId, { activeMonths: newActive });
   };
 
-  const unusedMonths = MONTHS_LIST.filter(
-    m => !monthlyGoals.some(goal => goal.month === m)
-  );
-
   return (
-    <div className="animate-in fade-in duration-500 space-y-12 md:space-y-20">
-      {/* Global Configuration */}
-      <section>
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4">
-          <div className="flex items-center gap-6">
-            <h2 className="text-3xl md:text-4xl font-black text-gray-800 tracking-tighter uppercase">Global Architecture</h2>
-          </div>
-          <button 
-            onClick={() => onUpdateConfig({...config, showVisionBoard: !config.showVisionBoard})}
-            className={`px-4 py-2 rounded-sm text-[10px] font-black uppercase border-2 transition-all ${config.showVisionBoard ? 'bg-[#76C7C0] border-[#76C7C0] text-white' : 'bg-white border-gray-200 text-gray-400'}`}
-          >
-            Vision Board: {config.showVisionBoard ? 'ON' : 'OFF'}
-          </button>
-        </div>
+    <div className="flex flex-col lg:flex-row gap-6 p-6 min-h-screen bg-[#FDFDFD] text-slate-700 font-sans">
+      <style>{`
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+      `}</style>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-10">
-          <div className="bg-white border border-gray-200 p-6 md:p-10 rounded-sm shadow-sm">
-             <h3 className="text-xs font-bold uppercase tracking-widest text-[#94A3B8] mb-6 md:mb-8 text-center sm:text-left">Year Definition</h3>
+      {/* --- LEFT SIDEBAR --- */}
+      <div className="w-full lg:w-[280px] flex-shrink-0 space-y-5">
+        <div className={`bg-[#FFD8A8] rounded-xl p-6 text-center border border-[#FFC078] ${THEME.shadow}`}>
+          <h1 className="text-xl font-black text-[#8C4B15] tracking-tight uppercase">System Setup</h1>
+          <div className="mt-4 bg-white/40 rounded-lg p-2 backdrop-blur-sm">
+             <label className="text-[9px] font-bold text-[#A65D1B] uppercase tracking-wider block mb-1">Planning Year</label>
              <input 
-                className="text-5xl md:text-7xl font-bold text-[#1E293B] bg-transparent outline-none w-full text-center sm:text-left"
+                className="w-full text-center text-3xl font-black text-[#8C4B15] bg-transparent outline-none placeholder-[#d49658]"
                 value={config.year}
                 onChange={(e) => onUpdateConfig({ ...config, year: e.target.value })}
-              />
-          </div>
-
-          <div className="bg-white border border-gray-300 p-6 md:p-10 rounded-sm shadow-sm">
-             <h3 className="text-xs font-black uppercase tracking-widest text-gray-400 mb-6 text-center sm:text-left">Active Months</h3>
-             <div className="flex flex-wrap gap-1.5 md:gap-2 justify-center sm:justify-start">
-                {MONTHS_LIST.map(month => (
-                  <button
-                    key={month}
-                    onClick={() => toggleMonthGlobal(month)}
-                    className={`px-2 py-1.5 md:px-3 rounded-sm text-[8px] md:text-[9px] font-black uppercase transition-all ${
-                      config.activeMonths.includes(month)
-                        ? 'bg-gray-800 text-white'
-                        : 'bg-gray-100 text-gray-400 hover:bg-gray-200'
-                    }`}
-                  >
-                    {month.slice(0, 3)}
-                  </button>
-                ))}
-             </div>
+                placeholder="2025"
+             />
           </div>
         </div>
-      </section>
 
-      {/* Protocol Setup - Month Wise */}
-      <section>
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4">
-          <h2 className="text-3xl md:text-4xl font-black text-gray-800 tracking-tighter uppercase">Protocol Setup</h2>
-          <button 
-            onClick={onAddHabit}
-            className="w-full sm:w-auto bg-gray-800 text-white px-6 py-3 rounded-sm font-black uppercase text-xs shadow-lg"
-          >
-            + Add Habit
-          </button>
-        </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-8 md:gap-12">
-          {/* Daily Routines Configuration */}
-          <div className="lg:col-span-1 border border-gray-300 rounded-sm bg-white overflow-hidden shadow-sm">
-            <div className="bg-[#E8F5F4] p-4 text-center border-b border-gray-300">
-              <h3 className="text-xs font-black uppercase tracking-widest text-[#58A6A0]">Daily Routines</h3>
-            </div>
-            
-            {/* Month-Wise Configuration Context */}
-            <div className="p-4 border-b border-gray-100 bg-gray-50">
-              <label className="text-[8px] font-black uppercase tracking-widest text-gray-400 mb-2 block">Configuration Context</label>
-              <div className="flex flex-wrap gap-1">
-                {MONTHS_LIST.map(m => (
-                  <button
-                    key={m}
-                    onClick={() => setSelectedConfigMonth(m)}
-                    className={`px-1.5 py-1 text-[7px] font-black uppercase border rounded-sm transition-all ${
-                      selectedConfigMonth === m 
-                        ? 'bg-emerald-500 border-emerald-500 text-white' 
-                        : 'bg-white border-gray-200 text-gray-400'
-                    }`}
-                  >
-                    {m.slice(0, 3)}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div className="p-4 space-y-4 max-h-[500px] overflow-y-auto no-scrollbar">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-[9px] font-black uppercase text-gray-400 tracking-tighter italic">Enable/Disable for {selectedConfigMonth}</span>
-              </div>
-              {habits.map((h) => {
-                const isActiveForMonth = (h.activeMonths || []).includes(selectedConfigMonth);
+        <div className="bg-white rounded-xl p-5 border border-slate-200 shadow-sm">
+          <h3 className="text-xs font-black text-slate-500 uppercase tracking-widest mb-4 border-b border-slate-100 pb-2">Active Months</h3>
+          <div className="grid grid-cols-4 gap-2">
+            {MONTHS_LIST.map((m, idx) => {
+                const isActive = config.activeMonths.includes(m);
+                const color = THEME.colors[idx % THEME.colors.length];
                 return (
-                  <div key={h.id} className="group flex items-center gap-3 pb-3 border-b border-gray-50 last:border-none">
-                    <button 
-                      onClick={() => toggleHabitForMonth(h.id, selectedConfigMonth)}
-                      className={`w-6 h-6 rounded flex items-center justify-center transition-all border-2 ${
-                        isActiveForMonth ? 'bg-emerald-500 border-emerald-500 text-white' : 'bg-white border-gray-200 text-transparent'
-                      }`}
+                    <button
+                        key={m}
+                        onClick={() => {
+                            const newMonths = isActive ? config.activeMonths.filter(x => x !== m) : [...config.activeMonths, m];
+                            onUpdateConfig({...config, activeMonths: MONTHS_LIST.filter(mo => newMonths.includes(mo))});
+                        }}
+                        className={`text-[9px] font-bold uppercase py-2 rounded-md transition-all border
+                            ${isActive ? 'text-white shadow-sm transform scale-105' : 'bg-slate-50 text-slate-400 border-slate-100 hover:bg-slate-100'}`}
+                        style={{ backgroundColor: isActive ? color : undefined, borderColor: isActive ? color : undefined }}
                     >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="4" d="M5 13l4 4L19 7" /></svg>
+                        {m.slice(0, 3)}
                     </button>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm">{h.emoji}</span>
-                        <input 
-                          className={`w-full text-xs font-bold bg-transparent outline-none transition-colors ${isActiveForMonth ? 'text-gray-800' : 'text-gray-300'}`} 
-                          value={h.name} 
-                          onChange={(e) => onUpdateHabit(h.id, { name: e.target.value })} 
-                        />
-                      </div>
-                    </div>
-                    <button onClick={() => onDeleteHabit(h.id)} className="text-red-200 hover:text-red-500 text-xs">✕</button>
-                  </div>
                 );
-              })}
-            </div>
+            })}
           </div>
+        </div>
 
-          {/* Targets Configuration */}
-          <div className="lg:col-span-3">
-            <div className="bg-gray-100 p-4 rounded-sm border border-gray-300 mb-6 flex flex-col sm:flex-row justify-between items-center gap-4">
-              <h3 className="text-xs font-black uppercase tracking-widest text-gray-500">Target Architecture</h3>
-              <div className="relative w-full sm:w-auto">
-                <button 
-                  onClick={() => setIsMonthDropdownOpen(!isMonthDropdownOpen)}
-                  className="w-full sm:w-auto bg-[#76C7C0] text-white px-4 py-2 rounded text-[10px] font-black uppercase"
-                >
-                  + Add Month
-                </button>
-                {isMonthDropdownOpen && (
-                  <div className="absolute top-full right-0 mt-2 w-full sm:w-40 bg-white border border-gray-200 shadow-xl z-50 py-2">
-                    {unusedMonths.map(m => (
-                      <button key={m} className="w-full text-left px-4 py-2 text-[10px] font-bold uppercase hover:bg-gray-50" onClick={() => { onAddMonthlyGoalContainer(m); setIsMonthDropdownOpen(false); }}>{m}</button>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
-            
-            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
-              {monthlyGoals.map((m) => (
-                <div key={m.month} className="border border-gray-200 bg-white p-5 rounded-sm group relative shadow-sm">
-                  <button onClick={() => onDeleteMonthlyGoalContainer(m.month)} className="absolute top-2 right-2 text-gray-300 hover:text-red-400 text-xs transition-colors">✕</button>
-                  <div className="flex justify-between items-center mb-4 pb-2 border-b border-gray-100">
-                    <span className="text-[10px] font-black uppercase text-[#76C7C0]">{m.month}</span>
-                    <button onClick={() => onUpdateMonthlyGoals(m.month, [...m.goals, { text: 'New Target', completed: false }])} className="text-[#76C7C0] text-[10px] font-black uppercase hover:underline">+ ADD</button>
-                  </div>
-                  <ul className="space-y-3">
-                    {m.goals.map((g, idx) => (
-                      <li key={idx} className="flex items-center gap-3 group">
-                        <button 
-                          onClick={() => {
-                            const newGoals = [...m.goals];
-                            newGoals[idx] = { ...g, completed: !g.completed };
-                            onUpdateMonthlyGoals(m.month, newGoals);
-                          }}
-                          className={`w-4 h-4 rounded border flex items-center justify-center transition-all ${g.completed ? 'bg-emerald-500 border-emerald-500 text-white' : 'border-gray-200 bg-white'}`}
-                        >
-                          {g.completed && <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="4" d="M5 13l4 4L19 7" /></svg>}
-                        </button>
-                        <input 
-                          className={`text-[10px] bg-transparent flex-1 outline-none border-b border-transparent focus:border-gray-100 transition-all ${g.completed ? 'text-gray-300 line-through font-medium' : 'text-gray-600 font-bold'}`} 
-                          value={g.text}
-                          onChange={(e) => {
-                            const newGoals = [...m.goals];
-                            newGoals[idx] = { ...g, text: e.target.value };
-                            onUpdateMonthlyGoals(m.month, newGoals);
-                          }}
-                        />
-                        <button 
-                          onClick={() => {
-                            const newGoals = m.goals.filter((_, i) => i !== idx);
-                            onUpdateMonthlyGoals(m.month, newGoals);
-                          }}
-                          className="text-gray-200 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-all text-[8px]"
-                        >
-                          ✕
-                        </button>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              ))}
+        <div className="bg-[#111827] rounded-xl p-5 border border-gray-800 shadow-lg relative overflow-hidden group">
+          <h3 className="text-[10px] font-black text-emerald-400 uppercase tracking-[0.4em] mb-4 border-b border-white/5 pb-2 italic">Access Fidelity</h3>
+          <div className="flex items-end justify-between">
+            <div>
+              <p className="text-3xl font-black text-white italic tracking-tighter">{subscriptionRemaining}</p>
+              <p className="text-[8px] font-bold text-gray-500 uppercase tracking-widest">Days Remaining</p>
             </div>
           </div>
         </div>
-      </section>
+
+        {isDummyData && (
+            <button onClick={onClearDummyData} className="w-full py-3 rounded-xl border border-dashed border-red-300 text-red-400 text-[10px] font-black uppercase hover:bg-red-50 transition-colors">Clear Demo Data</button>
+        )}
+      </div>
+
+      {/* --- RIGHT CONTENT --- */}
+      <div className="flex-1 min-w-0 flex flex-col gap-6">
+        <div className={`relative rounded-2xl p-8 border border-slate-200 overflow-hidden group ${THEME.shadow}`}>
+             <div className="absolute inset-0 bg-gradient-to-br from-[#F0F9FF] via-white to-[#FFF7ED]"></div>
+             <div className="relative z-10 flex flex-col items-center justify-center text-center space-y-6">
+                <div className="flex items-center gap-4 w-full max-w-lg opacity-60">
+                   <div className="h-px flex-1 bg-gradient-to-r from-transparent to-slate-400"></div>
+                   <span className="text-[10px] font-black uppercase tracking-[0.25em] text-slate-500">Annual Manifesto</span>
+                   <div className="h-px flex-1 bg-gradient-to-l from-transparent to-slate-400"></div>
+                </div>
+                <div className="w-full max-w-3xl">
+                    <textarea 
+                        className="w-full text-center text-2xl md:text-4xl font-black text-slate-700 placeholder-slate-300 bg-transparent outline-none no-scrollbar leading-tight min-h-[120px] resize-y overflow-auto"
+                        placeholder="Define your absolute vision here..."
+                        value={config.manifestationText}
+                        onChange={(e) => onUpdateConfig({ ...config, manifestationText: e.target.value })}
+                    />
+                </div>
+             </div>
+        </div>
+
+        {/* HABIT REGISTRY */}
+        <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden flex flex-col">
+            <div className="bg-[#E0F2FE] p-4 border-b border-white flex flex-col md:flex-row items-center justify-between gap-4">
+                 <div className="flex items-center gap-3">
+                    <h2 className="text-[12px] font-black text-[#0369A1] uppercase tracking-wider">Habit Registry</h2>
+                    <span className="bg-white/50 px-2 py-0.5 rounded text-[10px] font-bold text-[#0369A1]">{habits.length} Habits</span>
+                 </div>
+                 
+                 <div className="flex items-center bg-white/40 rounded-lg p-1 gap-1 overflow-x-auto no-scrollbar max-w-full">
+                    {MONTHS_LIST.map(m => (
+                        <button key={m} onClick={() => setSelectedConfigMonth(m)} className={`px-3 py-1 rounded text-[9px] font-black uppercase transition-all whitespace-nowrap ${selectedConfigMonth === m ? 'bg-white text-[#0369A1] shadow-sm' : 'text-[#0369A1]/50 hover:text-[#0369A1]'}`}>{m}</button>
+                    ))}
+                 </div>
+            </div>
+
+            <div className="bg-white">
+                {/* Table Header Row */}
+                <div className="hidden md:grid grid-cols-12 bg-slate-50 border-b border-slate-100 text-[8px] font-black uppercase tracking-[0.2em] text-slate-400">
+                    <div className="col-span-1 p-2 text-center">Icon</div>
+                    <div className="col-span-4 p-2 pl-4">Habit Strategy</div>
+                    <div className="col-span-2 p-2 text-center">Category</div>
+                    <div className="col-span-1 p-2 text-center">Goal</div>
+                    <div className="col-span-1 p-2 text-center">Freq</div>
+                    <div className="col-span-2 p-2 text-center">Sync Status</div>
+                    <div className="col-span-1 p-2 text-center">Exit</div>
+                </div>
+
+                {habits.map((h) => {
+                    const isActive = (h.activeMonths || []).includes(selectedConfigMonth);
+                    return (
+                        <div key={h.id} className="grid grid-cols-12 border-b border-slate-100 group hover:bg-slate-50 transition-colors items-center">
+                            {/* Icon */}
+                            <div className="col-span-2 md:col-span-1 py-3 border-r border-slate-50 flex justify-center">
+                                <input 
+                                    className="w-8 text-center bg-transparent outline-none text-xl cursor-pointer hover:scale-125 transition-transform" 
+                                    value={h.emoji} 
+                                    onChange={(e) => onUpdateHabit(h.id, { emoji: e.target.value })} 
+                                />
+                            </div>
+                            
+                            {/* Name */}
+                            <div className="col-span-10 md:col-span-4 py-2 px-4 md:border-r border-slate-50">
+                                <div className="bg-[#FFF7ED] p-2 rounded-xl border border-orange-100/50 group-hover:bg-[#FFEDD5] transition-colors">
+                                    <input 
+                                        className="w-full text-[11px] font-bold text-slate-700 bg-transparent outline-none placeholder-orange-200" 
+                                        value={h.name} 
+                                        onChange={(e) => onUpdateHabit(h.id, { name: e.target.value })} 
+                                        placeholder="Define Ritual..."
+                                    />
+                                </div>
+                            </div>
+                            
+                            {/* Category Dropdown */}
+                            <div className="col-span-4 md:col-span-2 py-2 px-2 border-r border-slate-50 hidden md:block">
+                                <select 
+                                    value={h.category}
+                                    onChange={(e) => onUpdateHabit(h.id, { category: e.target.value as Habit['category'] })}
+                                    className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2 py-1 text-[9px] font-black uppercase tracking-widest text-slate-500 outline-none focus:border-indigo-400"
+                                >
+                                    {CATEGORIES.map(cat => <option key={cat} value={cat}>{cat}</option>)}
+                                </select>
+                            </div>
+
+                            {/* Goal */}
+                            <div className="col-span-1 py-2 px-1 border-r border-slate-50 hidden md:block">
+                                <input 
+                                    type="number"
+                                    className="w-full text-center text-[10px] font-black text-slate-700 bg-transparent outline-none"
+                                    value={h.goal}
+                                    onChange={(e) => onUpdateHabit(h.id, { goal: parseInt(e.target.value) || 0 })}
+                                />
+                            </div>
+
+                            {/* Freq */}
+                            <div className="col-span-1 py-2 px-1 border-r border-slate-50 hidden md:block">
+                                <input 
+                                    className="w-full text-center text-[10px] font-black text-slate-400 bg-transparent outline-none uppercase"
+                                    value={h.frequency}
+                                    onChange={(e) => onUpdateHabit(h.id, { frequency: e.target.value })}
+                                />
+                            </div>
+
+                            {/* Sync Status (Active for month) */}
+                            <div className="col-span-9 md:col-span-2 py-2 flex justify-center gap-3 items-center md:border-r border-slate-50">
+                                <button 
+                                    onClick={() => toggleHabitForMonth(h.id, selectedConfigMonth)} 
+                                    className={`flex items-center gap-2 px-4 py-1.5 rounded-full border transition-all ${isActive ? 'bg-[#007ACC] border-[#007ACC] text-white shadow-lg shadow-blue-100' : 'bg-white border-slate-200 text-slate-300 hover:border-slate-400'}`}
+                                >
+                                    <span className="text-[8px] font-black uppercase tracking-widest">{isActive ? 'Synced' : 'Inactive'}</span>
+                                    {isActive ? <svg className="w-2.5 h-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="4" d="M5 13l4 4L19 7" /></svg> : <div className="w-2.5 h-2.5 rounded-full border border-slate-200" />}
+                                </button>
+                            </div>
+
+                            {/* Delete */}
+                            <div className="col-span-3 md:col-span-1 py-2 flex justify-center">
+                                <button onClick={() => onDeleteHabit(h.id)} className="w-8 h-8 rounded-full flex items-center justify-center text-slate-300 hover:bg-rose-50 hover:text-[#C94C4C] transition-all text-xl font-light">×</button>
+                            </div>
+                        </div>
+                    );
+                })}
+                
+                <div 
+                    className="p-4 bg-[#F0F9FF] border-t border-white text-center cursor-pointer hover:bg-[#E0F2FE] transition-all group" 
+                    onClick={onAddHabit}
+                >
+                    <span className="text-[10px] font-black text-[#0369A1] uppercase tracking-[0.4em] group-hover:tracking-[0.6em] transition-all">+ Add New Habit Strategy</span>
+                </div>
+            </div>
+        </div>
+
+        {/* MONTHLY MILESTONES */}
+        <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm">
+            <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-6 border-b border-slate-100 pb-2">Tactical Milestones</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {config.activeMonths.map((month, idx) => {
+                    const color = THEME.colors[idx % THEME.colors.length];
+                    const mGoals = monthlyGoals.find(m => m.month === month)?.goals || [];
+                    return (
+                        <div key={month} className="border border-slate-100 rounded-lg overflow-hidden hover:shadow-md transition-shadow">
+                            <div className="px-4 py-2 flex justify-between items-center" style={{ backgroundColor: `${color}15`, borderBottom: `1px solid ${color}30` }}>
+                                <span className="text-[10px] font-black uppercase tracking-wider" style={{ color: color }}>{month}</span>
+                                <button onClick={() => handleAddMonthlyGoal(month)} className="w-5 h-5 rounded bg-white flex items-center justify-center text-[12px] shadow-sm hover:scale-110 transition-transform" style={{ color: color }}>+</button>
+                            </div>
+                            <div className="p-3 bg-white space-y-2 min-h-[80px]">
+                                {mGoals.map((goal, gIdx) => (
+                                    <div key={gIdx} className="flex items-start gap-2 group">
+                                        <div onClick={() => {
+                                            const newGoals = [...mGoals];
+                                            newGoals[gIdx].completed = !newGoals[gIdx].completed;
+                                            onUpdateMonthlyGoals(month, newGoals);
+                                        }} className={`mt-1 w-3 h-3 rounded-[2px] border cursor-pointer flex items-center justify-center transition-all ${goal.completed ? 'border-transparent' : 'border-slate-300 bg-slate-50'}`} style={{ backgroundColor: goal.completed ? color : undefined }}>
+                                           {goal.completed && <svg className="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="4" d="M5 13l4 4L19 7" /></svg>}
+                                        </div>
+                                        <input className={`flex-1 text-[10px] font-bold bg-transparent outline-none ${goal.completed ? 'text-slate-300 line-through' : 'text-slate-600'}`} value={goal.text} onChange={(e) => {
+                                            const newGoals = [...mGoals];
+                                            newGoals[gIdx].text = e.target.value;
+                                            onUpdateMonthlyGoals(month, newGoals);
+                                        }} />
+                                        <button 
+                                          onClick={() => handleDeleteMonthlyGoal(month, gIdx)}
+                                          className="text-slate-300 hover:text-rose-500 opacity-0 group-hover:opacity-100 transition-opacity p-0.5"
+                                        >
+                                          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M6 18L18 6M6 6l12 12" /></svg>
+                                        </button>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    );
+                })}
+            </div>
+        </div>
+      </div>
     </div>
   );
 };

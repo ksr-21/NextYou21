@@ -1,9 +1,8 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { HabitMatrix } from './components/HabitMatrix.tsx';
 import { SetupView } from './components/SetupView.tsx';
 import { AnnualGoalsView } from './components/AnnualGoalsView.tsx';
-import { Dashboard as MainDashboard } from './pages/Dashboard.tsx';
 import { LandingPage } from './pages/LandingPage.tsx';
 import { AuthView } from './components/AuthView.tsx';
 import { PaymentGate } from './components/PaymentGate.tsx';
@@ -15,13 +14,11 @@ import { Habit, Tab, MonthlyGoal, AnnualCategory, PlannerConfig, WeeklyGoal } fr
 const App: React.FC = () => {
   const [user, setUser] = useState<any>(null);
   const [authLoading, setAuthLoading] = useState(true);
+  const [dataLoaded, setDataLoaded] = useState(false);
+  const [initialTabSet, setInitialTabSet] = useState(false);
   
-  // Optimistic Initial State: Read from cache to avoid fetch delay
-  const [isPaid, setIsPaid] = useState<boolean | null>(() => {
-    const cached = localStorage.getItem('habitos_is_paid');
-    if (cached === 'true') return true;
-    if (cached === 'false') return false;
-    return null;
+  const [isPaid, setIsPaid] = useState<boolean>(() => {
+    return localStorage.getItem('habitos_is_paid') === 'true';
   });
 
   const [userCreatedAt, setUserCreatedAt] = useState<string | null>(null);
@@ -29,10 +26,16 @@ const App: React.FC = () => {
     return localStorage.getItem('habitos_has_started') === 'true';
   });
   
-  const [activeTab, setActiveTab] = useState<Tab>('Dashboard');
+  const [activeTab, setActiveTab] = useState<Tab>('Setup');
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [syncing, setSyncing] = useState(false);
   const [dismissedWarning, setDismissedWarning] = useState(false);
+
+  // Drag and drop state
+  const [dragIndex, setDragIndex] = useState<number | null>(null);
+  const [dragCurrentIndex, setDragCurrentIndex] = useState<number | null>(null);
+  const longPressTimer = useRef<number | null>(null);
+  const isDragging = useRef(false);
 
   // App State
   const [habits, setHabits] = useState<Habit[]>(INITIAL_HABITS);
@@ -44,9 +47,38 @@ const App: React.FC = () => {
     showVisionBoard: true,
     activeMonths: ['January'],
     manifestationText: "Write your strategic vision here. Manifest the elite architecture of your future life.",
+    tabOrder: ['Setup', 'Annual Goals', 'January'],
   });
 
   const isDummyData = habits.length > 0 && habits[0].id === '1' && habits[0].name === INITIAL_HABITS[0].name;
+
+  // Calculate sorted tabs based on saved tabOrder
+  const allTabs = useMemo(() => {
+    const available = ['Setup'];
+    if (config.showVisionBoard) available.push('Annual Goals');
+    (config.activeMonths || []).forEach(m => available.push(m));
+    
+    let baseOrder = config.tabOrder || [];
+    // Filter out removed tabs (like 'Architecture')
+    baseOrder = baseOrder.filter(t => t !== 'Architecture');
+
+    if (baseOrder.length > 0) {
+      const order = baseOrder.filter(t => available.includes(t));
+      const remaining = available.filter(t => !order.includes(t));
+      const fullList = [...order, ...remaining];
+      
+      // While dragging, we swap positions live in the view
+      if (isDragging.current && dragIndex !== null && dragCurrentIndex !== null) {
+        const liveOrder = [...fullList];
+        const [removed] = liveOrder.splice(dragIndex, 1);
+        liveOrder.splice(dragCurrentIndex, 0, removed);
+        return liveOrder;
+      }
+
+      return fullList;
+    }
+    return available;
+  }, [config.tabOrder, config.showVisionBoard, config.activeMonths, dragIndex, dragCurrentIndex]);
 
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged((currentUser) => {
@@ -56,8 +88,7 @@ const App: React.FC = () => {
         localStorage.setItem('habitos_has_started', 'true');
         setHasStarted(true);
       } else {
-        localStorage.removeItem('habitos_is_paid');
-        setIsPaid(null);
+        setDataLoaded(false);
       }
     });
     return () => unsubscribe();
@@ -67,33 +98,51 @@ const App: React.FC = () => {
     if (!user) return;
     const docRef = db.collection('users').doc(user.uid);
     
-    // Background listener updates the state and cache silently
     const unsubscribe = docRef.onSnapshot((doc) => {
       if (doc.exists) {
         const data = doc.data();
         if (data) {
-          const paidStatus = data.isPaid === true;
-          setIsPaid(paidStatus);
-          localStorage.setItem('habitos_is_paid', paidStatus.toString());
+          const cloudPaid = data.isPaid === true;
+          
+          if (cloudPaid) {
+            setIsPaid(true);
+            localStorage.setItem('habitos_is_paid', 'true');
+          } else if (localStorage.getItem('habitos_is_paid') !== 'true') {
+            setIsPaid(false);
+          }
           
           if (data.createdAt) setUserCreatedAt(data.createdAt);
           if (data.habits && data.habits.length > 0) setHabits(data.habits);
           if (data.monthlyGoals) setMonthlyGoals(data.monthlyGoals);
           if (data.weeklyGoals) setWeeklyGoals(data.weeklyGoals);
           if (data.annualCategories) setAnnualCategories(data.annualCategories);
-          if (data.config) setConfig(prev => ({ ...prev, ...data.config }));
+          if (data.config) {
+             const cloudConfig = { ...data.config };
+             if (cloudConfig.tabOrder) {
+               cloudConfig.tabOrder = cloudConfig.tabOrder.filter((t: string) => t !== 'Architecture');
+             }
+             setConfig(prev => ({ ...prev, ...cloudConfig }));
+          }
         }
       } else {
-        setIsPaid(false);
-        localStorage.setItem('habitos_is_paid', 'false');
+        if (localStorage.getItem('habitos_is_paid') !== 'true') {
+          setIsPaid(false);
+        }
       }
+      setDataLoaded(true);
     }, (error) => {
       console.error("Firestore Listen Error:", error);
-      // In case of network error, we trust the cache for 1 session or default to false
-      if (isPaid === null) setIsPaid(false);
+      setDataLoaded(true);
     });
     return () => unsubscribe();
   }, [user]);
+
+  useEffect(() => {
+    if (dataLoaded && !initialTabSet && allTabs.length > 0) {
+      setActiveTab(allTabs[0]);
+      setInitialTabSet(true);
+    }
+  }, [dataLoaded, initialTabSet, allTabs]);
 
   const syncToCloud = async (updates: any) => {
     if (!user) return;
@@ -102,6 +151,11 @@ const App: React.FC = () => {
       await db.collection('users').doc(user.uid).update(updates);
     } catch (e) {
       console.error("Sync Error:", e);
+      try {
+        await db.collection('users').doc(user.uid).set(updates, { merge: true });
+      } catch (innerError) {
+        console.error("Final Sync Attempt Failed:", innerError);
+      }
     } finally {
       setSyncing(false);
     }
@@ -145,15 +199,48 @@ const App: React.FC = () => {
   const handleLogout = () => {
     auth.signOut();
     localStorage.removeItem('habitos_has_started');
-    localStorage.removeItem('habitos_is_paid');
     setHasStarted(false);
-    setIsPaid(null);
+    setInitialTabSet(false);
   };
 
   const handlePaymentSuccess = () => {
     setIsPaid(true);
     localStorage.setItem('habitos_is_paid', 'true');
     syncToCloud({ isPaid: true });
+  };
+
+  const handleDragStart = (index: number) => {
+    longPressTimer.current = window.setTimeout(() => {
+      isDragging.current = true;
+      setDragIndex(index);
+      setDragCurrentIndex(index);
+      // Vibrate if mobile
+      if ('vibrate' in navigator) navigator.vibrate(50);
+    }, 400); // Slightly faster long press
+  };
+
+  const handleDragOver = (index: number) => {
+    if (isDragging.current && dragIndex !== null && dragCurrentIndex !== index) {
+      setDragCurrentIndex(index);
+    }
+  };
+
+  const handleDragEnd = () => {
+    if (longPressTimer.current) {
+      window.clearTimeout(longPressTimer.current);
+      longPressTimer.current = null;
+    }
+
+    if (isDragging.current && dragIndex !== null && dragCurrentIndex !== null && dragIndex !== dragCurrentIndex) {
+      // Finalize the reordering to permanent state
+      const newTabs = [...allTabs];
+      setConfig(prev => ({ ...prev, tabOrder: newTabs }));
+      syncToCloud({ config: { ...config, tabOrder: newTabs } });
+    }
+
+    isDragging.current = false;
+    setDragIndex(null);
+    setDragCurrentIndex(null);
   };
 
   const renderContent = () => {
@@ -186,9 +273,15 @@ const App: React.FC = () => {
             }}
             config={config}
             onUpdateConfig={(newConf) => {
-              setConfig(newConf);
-              syncToCloud({ config: newConf });
+              const finalConf = { ...newConf };
+              if (finalConf.tabOrder) {
+                finalConf.tabOrder = finalConf.tabOrder.filter(t => t !== 'Architecture');
+              }
+              setConfig(finalConf);
+              syncToCloud({ config: finalConf });
             }}
+            subscriptionRemaining={90}
+            allTabs={allTabs}
           />
         );
       case 'Annual Goals':
@@ -216,27 +309,14 @@ const App: React.FC = () => {
               const existing = weeklyGoals.find(w => w.month === month && w.weekIndex === weekIndex);
               let newWeekly;
               if (existing) {
-                newWeekly = weeklyGoals.map(w => (w.month === month && w.weekIndex === weekIndex) ? { ...w, goals } : w);
+                // Fixed: Correctly using 'goals' instead of undefined 'newGoals'
+                newWeekly = weeklyGoals.map(w => (w.month === month && w.weekIndex === weekIndex) ? { ...w, goals: goals } : w);
               } else {
                 newWeekly = [...weeklyGoals, { month, weekIndex, goals }];
               }
               setWeeklyGoals(newWeekly);
               syncToCloud({ weeklyGoals: newWeekly });
             }}
-          />
-        );
-      case 'Dashboard':
-        return (
-          <MainDashboard 
-            habits={habits} 
-            config={config}
-            userCreatedAt={userCreatedAt}
-            userEmail={user?.email}
-            onUpdateConfig={(newConf) => {
-              setConfig(newConf);
-              syncToCloud({ config: newConf });
-            }}
-            onAddClick={() => setIsAddModalOpen(true)} 
           />
         );
       default:
@@ -265,6 +345,21 @@ const App: React.FC = () => {
     }
   };
 
+  const getTabTheme = (tab: string) => {
+    if (tab === 'Setup') return 'bg-slate-800 text-white';
+    if (tab === 'Annual Goals') return 'bg-[#76C7C0] text-white';
+    
+    const monthIdx = MONTHS_LIST.indexOf(tab);
+    const colors = [
+      'bg-blue-600', 'bg-purple-600', 'bg-amber-500', 'bg-emerald-600', 
+      'bg-rose-600', 'bg-sky-500', 'bg-violet-600', 'bg-orange-600', 
+      'bg-teal-600', 'bg-pink-600', 'bg-indigo-700', 'bg-cyan-600'
+    ];
+    
+    if (monthIdx !== -1) return colors[monthIdx % colors.length];
+    return 'bg-slate-200 text-slate-600';
+  };
+
   const renderLoader = () => (
     <div className="min-h-screen bg-[#FDFDFB] flex flex-col items-center justify-center space-y-6">
       <div className="w-16 h-16 bg-gray-900 rounded-[2rem] flex items-center justify-center text-white font-black text-3xl animate-pulse shadow-2xl">N</div>
@@ -280,20 +375,13 @@ const App: React.FC = () => {
   if (authLoading) return renderLoader();
 
   if (user) {
-    // If we have a cached isPaid value (from the closure or localStorage), we show the app.
-    // Otherwise, we show the loader briefly for the first fetch.
-    if (isPaid === null) return renderLoader();
-    
-    if (!isPaid) return <PaymentGate userEmail={user.email} onSuccess={handlePaymentSuccess} />;
-    
-    const mainTabs = ['Dashboard', 'Setup'];
-    if (config.showVisionBoard) mainTabs.push('Annual Goals');
-    const monthTabs = config.activeMonths || [];
-    const allTabs = [...mainTabs, ...monthTabs];
+    if (!dataLoaded && !isPaid) return renderLoader();
+    if (dataLoaded && !isPaid) {
+      return <PaymentGate userEmail={user.email} onSuccess={handlePaymentSuccess} />;
+    }
 
     return (
       <div className="min-h-screen pb-32">
-        {/* Operational Advisory Banner */}
         {isDummyData && !dismissedWarning && (
           <div className="bg-amber-50 border-b border-amber-200 py-3 px-6 md:px-12 animate-in fade-in slide-in-from-top duration-700">
             <div className="max-w-[1400px] mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
@@ -325,25 +413,52 @@ const App: React.FC = () => {
         )}
 
         <div className="planner-container">
-          <header className="flex flex-col md:flex-row justify-between items-start md:items-end mb-10 pb-6 border-b border-gray-200 gap-6">
-            <div>
-              <h1 className="text-6xl font-handwritten text-[#374151]">{config.year} NextYou21</h1>
-              <p className="text-[10px] font-black uppercase tracking-[0.4em] text-gray-400 mt-2">Life Architecture Command</p>
+          <header className="relative flex flex-col md:flex-row justify-between items-center md:items-end mb-12 p-8 rounded-[3rem] bg-gradient-to-br from-white to-slate-50 border border-slate-100 shadow-[0_20px_50px_rgba(0,0,0,0.02)] gap-6 overflow-hidden">
+            <div className="absolute top-0 right-0 w-64 h-64 bg-[#76C7C0]/5 rounded-full blur-3xl -mr-20 -mt-20 pointer-events-none" />
+            
+            <div className="flex items-center gap-6 relative z-10">
+              <div className="w-16 h-16 bg-gray-900 rounded-[1.8rem] flex items-center justify-center text-white font-black text-3xl shadow-2xl shadow-gray-200 animate-float">N</div>
+              <div>
+                <h1 className="text-4xl md:text-6xl font-black tracking-tighter text-gray-900 leading-none">
+                  <span className="text-transparent bg-clip-text bg-gradient-to-r from-gray-900 via-slate-600 to-[#76C7C0]">
+                    {config.year} NextYou21
+                  </span>
+                </h1>
+                <div className="flex items-center gap-2 mt-2">
+                  <div className="h-0.5 w-8 bg-[#76C7C0] rounded-full" />
+                  <p className="text-[10px] font-black uppercase tracking-[0.5em] text-slate-400">Life Architecture Command</p>
+                </div>
+              </div>
             </div>
-            <div className="flex items-center gap-4">
-               <div className="text-right">
-                 <div className={`flex items-center gap-2 ${syncing ? 'bg-amber-400' : 'bg-[#76C7C0]'} text-white px-4 py-1.5 rounded-full text-[9px] font-black uppercase transition-all duration-300`}>
+
+            <div className="flex items-center gap-6 relative z-10">
+               <div className="text-right hidden sm:block">
+                 <div className={`inline-flex items-center gap-2 ${syncing ? 'bg-amber-400 shadow-amber-100' : 'bg-[#76C7C0] shadow-emerald-100'} text-white px-5 py-2 rounded-full text-[10px] font-black uppercase tracking-widest transition-all duration-300 shadow-xl`}>
+                   <div className={`w-1.5 h-1.5 rounded-full bg-white ${syncing ? 'animate-ping' : ''}`} />
                    {syncing ? 'Syncing Cloud...' : 'Ledger Connected'}
                  </div>
-                 <p className="text-[10px] font-black text-gray-400 mt-2">{user?.displayName}</p>
+                 <p className="text-[11px] font-black text-slate-400 mt-2 flex items-center justify-end gap-2 uppercase tracking-tighter">
+                   <span className="w-1 h-1 rounded-full bg-slate-300" />
+                   {user?.displayName || user?.email?.split('@')[0]}
+                 </p>
                </div>
-               <button onClick={handleLogout} className="p-3 bg-white border border-gray-200 rounded-2xl hover:bg-gray-50 transition-colors shadow-sm">
-                 <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7" /></svg>
+               
+               <button 
+                 onClick={handleLogout} 
+                 className="p-4 bg-white border border-slate-200 rounded-[1.5rem] hover:bg-rose-50 hover:border-rose-200 hover:text-rose-600 transition-all shadow-xl shadow-slate-100 group flex items-center gap-2"
+                 title="Terminate Session"
+               >
+                 <span className="text-[10px] font-black uppercase tracking-widest hidden md:block">Logout</span>
+                 <svg className="w-5 h-5 text-slate-400 group-hover:text-rose-600 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M17 16l4-4m0 0l-4-4m4 4H7" />
+                 </svg>
                </button>
             </div>
           </header>
 
-          {renderContent()}
+          <main className="min-h-[60vh]">
+            {renderContent()}
+          </main>
 
           {isAddModalOpen && (
             <CreateHabitModal 
@@ -356,26 +471,60 @@ const App: React.FC = () => {
             />
           )}
 
-          <nav className="fixed bottom-0 left-0 right-0 bg-[#E2E4E7] border-t border-gray-400 z-[60] py-0 px-4 flex items-end h-[46px] overflow-x-auto no-scrollbar shadow-[0_-4px_10px_rgba(0,0,0,0.05)]">
-            <div className="flex items-end h-full">
-              {allTabs.map((tab) => (
-                <button
-                  key={tab}
-                  onClick={() => setActiveTab(tab)}
-                  className={`tab-button ${activeTab === tab ? 'active' : ''}`}
-                >
-                  {tab} 
-                </button>
-              ))}
+          <nav 
+            className="fixed bottom-0 left-0 right-0 bg-white/80 backdrop-blur-xl border-t border-slate-200 z-[60] py-0 px-6 flex items-end h-[68px] overflow-x-auto no-scrollbar shadow-[0_-10px_30px_rgba(0,0,0,0.05)] select-none"
+            onMouseUp={handleDragEnd}
+            onMouseLeave={handleDragEnd}
+            onTouchEnd={handleDragEnd}
+          >
+            <div className="flex items-end h-full gap-1 relative min-w-full">
+              {allTabs.map((tab, idx) => {
+                const isActive = activeTab === tab;
+                const isBeingDragged = dragIndex === idx;
+
+                return (
+                  <button
+                    key={`${tab}-${idx}`}
+                    onMouseDown={() => handleDragStart(idx)}
+                    onTouchStart={() => handleDragStart(idx)}
+                    onMouseEnter={() => handleDragOver(idx)}
+                    onClick={() => {
+                      if (!isDragging.current) {
+                        setActiveTab(tab);
+                        if (longPressTimer.current) {
+                          window.clearTimeout(longPressTimer.current);
+                          longPressTimer.current = null;
+                        }
+                      }
+                    }}
+                    className={`
+                      relative px-6 py-4 text-[10px] font-black uppercase tracking-widest transition-all duration-300 cursor-pointer whitespace-nowrap
+                      ${isActive ? `${getTabTheme(tab)} rounded-t-xl scale-y-105 origin-bottom shadow-lg z-10` : 'text-slate-400 hover:text-slate-600 hover:bg-slate-50/50'}
+                      ${isBeingDragged ? 'opacity-30 scale-110 z-50 pointer-events-none' : ''}
+                      ${isDragging.current && !isBeingDragged ? 'transform translate-x-0 transition-transform duration-300' : ''}
+                    `}
+                    style={{
+                      transform: isBeingDragged ? 'translateY(-12px)' : undefined,
+                    }}
+                  >
+                    {isActive && <div className="absolute top-0 left-0 right-0 h-1 bg-white/30" />}
+                    {tab}
+                    {isBeingDragged && (
+                       <div className="absolute -top-6 left-1/2 -translate-x-1/2 bg-[#76C7C0] text-white text-[8px] px-2 py-0.5 rounded font-black whitespace-nowrap shadow-lg">
+                         SLIDING...
+                       </div>
+                    )}
+                  </button>
+                );
+              })}
             </div>
-            <div className="flex-1 border-b border-gray-400 mb-[-1px]"></div>
           </nav>
         </div>
       </div>
     );
   }
 
-  if (!hasStarted) {
+  if (!hasStarted) { 
     return (
       <LandingPage onStart={() => {
         localStorage.setItem('habitos_has_started', 'true');
