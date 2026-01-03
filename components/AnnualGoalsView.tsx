@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo } from 'react';
 import { 
   Radar, RadarChart, PolarGrid, PolarAngleAxis,
@@ -281,6 +282,7 @@ export const AnnualGoalsView: React.FC<AnnualGoalsViewProps> = ({
                        <PolarGrid stroke="#F1F5F9" />
                        <PolarAngleAxis 
                           dataKey="subject" 
+                          /* Fix: fontWeights does not exist on SVGProps. Changed to fontWeight */
                           tick={{ fill: '#64748B', fontSize: 10, fontWeight: 700 }} 
                        />
                        <Radar name="My Focus" dataKey="A" stroke="#4F46E5" strokeWidth={3} fill="#6366F1" fillOpacity={0.2} />
@@ -333,7 +335,7 @@ export const AnnualGoalsView: React.FC<AnnualGoalsViewProps> = ({
                              
                              return (
                                <div className="bg-slate-900/90 backdrop-blur-md text-white px-4 py-3 rounded-xl shadow-2xl border border-white/10 text-center min-w-[120px]">
-                                  <div className={`text-[10px] font-black uppercase tracking-widest mb-1 ${theme.text ? theme.text.replace('text-', 'text-') : 'text-white'}`} style={{ color: theme.hex }}>
+                                  <div className="text-[10px] font-black uppercase tracking-widest mb-1" style={{ color: theme.hex }}>
                                      {data.name}
                                   </div>
                                   <div className="text-2xl font-black leading-none flex items-center justify-center gap-0.5">

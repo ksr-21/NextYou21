@@ -9,9 +9,12 @@ type InfoTab = 'Privacy' | 'Security' | 'Infrastructure' | null;
 export const LandingPage: React.FC<LandingPageProps> = ({ onStart }) => {
   const [activeInfoTab, setActiveInfoTab] = useState<InfoTab>(null);
 
-  const redirectToWhatsApp = (message: string) => {
-    const encodedMessage = encodeURIComponent(message);
-    window.open(`https://wa.me/918789548725?text=${encodedMessage}`, '_blank');
+  const handleUPIPayment = (amount: string, planName: string) => {
+    const upiId = "kunalsinghrajput2125@okicici";
+    const name = "NextYou21";
+    const note = encodeURIComponent(`NextYou21 ${planName} Plan`);
+    const upiLink = `upi://pay?pa=${upiId}&pn=${encodeURIComponent(name)}&am=${amount}&cu=INR&tn=${note}`;
+    window.location.href = upiLink;
   };
 
   const scrollToSection = (id: string) => {
@@ -47,6 +50,12 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStart }) => {
   };
 
   const info = getInfoContent();
+  const commonFeatures = [
+    'Daily Ritual Matrix',
+    'Performance Telemetry',
+    'Cloud Sync Protocol',
+    'Priority Support'
+  ];
 
   return (
     <div className="min-h-screen bg-[#FDFDFB] selection:bg-[#76C7C0] selection:text-white overflow-x-hidden scroll-smooth text-gray-900">
@@ -251,11 +260,11 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStart }) => {
               <h3 className="text-2xl font-black text-slate-900 uppercase italic mb-2">Tactical Cycle</h3>
               <p className="text-sm font-bold text-slate-400 mb-10">Monthly Sync</p>
               <div className="flex items-baseline gap-4 mb-10">
-                <span className="text-6xl font-black text-slate-900 italic tracking-tighter">$4</span>
-                <span className="text-2xl font-black text-slate-200 line-through decoration-rose-400 decoration-4">$9</span>
+                <span className="text-6xl font-black text-slate-900 italic tracking-tighter">₹49</span>
+                <span className="text-2xl font-black text-slate-200 line-through decoration-rose-400 decoration-4">₹199</span>
               </div>
               <ul className="space-y-6 mb-12">
-                {['Daily Ritual Matrix', 'AI Architecture Sync', 'Performance Telemetry'].map((feat, i) => (
+                {commonFeatures.map((feat, i) => (
                   <li key={i} className="flex items-center gap-4">
                     <div className="w-5 h-5 bg-indigo-50 rounded-full flex items-center justify-center text-indigo-500">
                       <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="4" d="M5 13l4 4L19 7" /></svg>
@@ -265,7 +274,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStart }) => {
                 ))}
               </ul>
               <button 
-                onClick={() => redirectToWhatsApp("I want the Tactical Cycle (Monthly) plan.")}
+                onClick={() => handleUPIPayment("49", "Tactical Cycle")}
                 className="w-full py-6 bg-slate-900 text-white rounded-[2rem] font-black text-lg hover:bg-indigo-600 transition-all shadow-xl active:scale-95"
               >
                 Deploy Strategy
@@ -278,11 +287,11 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStart }) => {
               <h3 className="text-2xl font-black text-white uppercase italic mb-2">Strategic Vision</h3>
               <p className="text-sm font-bold text-slate-500 mb-10">Annual Architecture Bundle</p>
               <div className="flex items-baseline gap-4 mb-10">
-                <span className="text-6xl md:text-7xl font-black text-[#76C7C0] italic tracking-tighter">$29</span>
-                <span className="text-2xl font-black text-white/10 line-through decoration-[#76C7C0]/50 decoration-4">$50</span>
+                <span className="text-6xl md:text-7xl font-black text-[#76C7C0] italic tracking-tighter">₹299</span>
+                <span className="text-2xl font-black text-white/10 line-through decoration-[#76C7C0]/50 decoration-4">₹1999</span>
               </div>
               <ul className="space-y-6 mb-12">
-                {['Full Vision Architecture', 'Priority AI Logic', 'Legacy Blueprint Storage'].map((feat, i) => (
+                {commonFeatures.map((feat, i) => (
                   <li key={i} className="flex items-center gap-4">
                     <div className="w-5 h-5 bg-[#76C7C0]/10 rounded-full flex items-center justify-center text-[#76C7C0]">
                       <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="4" d="M5 13l4 4L19 7" /></svg>
@@ -292,7 +301,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStart }) => {
                 ))}
               </ul>
               <button 
-                onClick={() => redirectToWhatsApp("I want the Strategic Vision (Annual) plan.")}
+                onClick={() => handleUPIPayment("299", "Strategic Vision")}
                 className="w-full py-6 bg-[#76C7C0] text-slate-900 rounded-[2rem] font-black text-lg hover:scale-[1.05] transition-all shadow-2xl shadow-[#76C7C0]/20 active:scale-95"
               >
                 Access Full Stack

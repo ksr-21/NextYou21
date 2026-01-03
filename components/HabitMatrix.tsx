@@ -353,7 +353,7 @@ export const HabitMatrix: React.FC<HabitMatrixProps> = ({
             </div>
           </div>
         </div>
-      </div>
+      </div> 
     </div>
   );
 };

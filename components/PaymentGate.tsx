@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 
 interface PaymentGateProps {
@@ -11,9 +10,12 @@ export const PaymentGate: React.FC<PaymentGateProps> = ({ onSuccess, userEmail }
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const redirectToWhatsApp = (message: string) => {
-    const encodedMessage = encodeURIComponent(message);
-    window.open(`https://wa.me/918789548725?text=${encodedMessage}`, '_blank');
+  const handleUPIPayment = (amount: string, planName: string) => {
+    const upiId = "kunalsinghrajput2125@okicici";
+    const name = "NextYou21";
+    const note = encodeURIComponent(`NextYou21 ${planName} Plan - ${userEmail}`);
+    const upiLink = `upi://pay?pa=${upiId}&pn=${encodeURIComponent(name)}&am=${amount}&cu=INR&tn=${note}`;
+    window.location.href = upiLink;
   };
 
   const handleApplyCoupon = () => {
@@ -28,6 +30,13 @@ export const PaymentGate: React.FC<PaymentGateProps> = ({ onSuccess, userEmail }
       setError('Invalid Protocol Code. Verification failed.');
     }
   };
+
+  const commonFeatures = [
+    'Daily Ritual Matrix',
+    'Performance Telemetry',
+    'Cloud Sync Protocol',
+    'Priority Support'
+  ];
 
   return (
     <div className="min-h-screen bg-[#FDFDFB] flex items-center justify-center p-6 relative overflow-hidden">
@@ -78,11 +87,11 @@ export const PaymentGate: React.FC<PaymentGateProps> = ({ onSuccess, userEmail }
              <h3 className="text-xl font-black text-gray-900 uppercase tracking-tight italic mb-1">Tactical</h3>
              <p className="text-[10px] font-black text-gray-300 uppercase tracking-widest mb-8">Monthly Sync</p>
              <div className="flex items-baseline gap-3 mb-10">
-                <span className="text-5xl font-black text-gray-900 italic tracking-tighter">$4</span>
-                <span className="text-xl font-black text-gray-200 line-through decoration-red-400 decoration-2">$9</span>
+                <span className="text-5xl font-black text-gray-900 italic tracking-tighter">₹49</span>
+                <span className="text-xl font-black text-gray-200 line-through decoration-red-400 decoration-2">₹199</span>
              </div>
              <ul className="space-y-4 mb-10">
-                {['Ritual Matrix', 'AI Insights', 'Cloud Sync'].map((f, i) => (
+                {commonFeatures.map((f, i) => (
                   <li key={i} className="flex items-center gap-4">
                     <div className="w-4 h-4 bg-emerald-50 rounded-full flex items-center justify-center text-emerald-500">
                       <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="4" d="M5 13l4 4L19 7" /></svg>
@@ -92,7 +101,7 @@ export const PaymentGate: React.FC<PaymentGateProps> = ({ onSuccess, userEmail }
                 ))}
              </ul>
              <button 
-                onClick={() => redirectToWhatsApp(`Hello! I am ${userEmail} and I want to initialize the Tactical (Monthly) Ledger. Please help me with the setup.`)}
+                onClick={() => handleUPIPayment("49", "Tactical")}
                 className="w-full py-4 bg-white border-2 border-gray-900 text-gray-900 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-gray-900 hover:text-white transition-all"
               >
                 Initialize
@@ -105,11 +114,11 @@ export const PaymentGate: React.FC<PaymentGateProps> = ({ onSuccess, userEmail }
              <h3 className="text-xl font-black text-white uppercase tracking-tight italic mb-1">Strategic</h3>
              <p className="text-[10px] font-black text-white/20 uppercase tracking-widest mb-8">Annual Ledger</p>
              <div className="flex items-baseline gap-3 mb-10">
-                <span className="text-5xl font-black text-[#76C7C0] italic tracking-tighter">$29</span>
-                <span className="text-xl font-black text-white/10 line-through decoration-[#76C7C0]/30 decoration-2">$50</span>
+                <span className="text-5xl font-black text-[#76C7C0] italic tracking-tighter">₹299</span>
+                <span className="text-xl font-black text-white/10 line-through decoration-[#76C7C0]/30 decoration-2">₹1999</span>
              </div>
              <ul className="space-y-4 mb-10">
-                {['Vision Board', 'Priority AI', 'All Tiers'].map((f, i) => (
+                {commonFeatures.map((f, i) => (
                   <li key={i} className="flex items-center gap-4">
                     <div className="w-4 h-4 bg-[#76C7C0]/10 rounded-full flex items-center justify-center text-[#76C7C0]">
                       <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="4" d="M5 13l4 4L19 7" /></svg>
@@ -119,7 +128,7 @@ export const PaymentGate: React.FC<PaymentGateProps> = ({ onSuccess, userEmail }
                 ))}
              </ul>
              <button 
-                onClick={() => redirectToWhatsApp(`Hello! I am ${userEmail} and I want to access the Strategic (Annual) Ledger Stack. Please help me with the setup.`)}
+                onClick={() => handleUPIPayment("299", "Strategic")}
                 className="w-full py-4 bg-[#76C7C0] text-gray-900 rounded-2xl font-black text-xs uppercase tracking-widest hover:scale-105 transition-all shadow-xl shadow-[#76C7C0]/10"
               >
                 Access Stack
