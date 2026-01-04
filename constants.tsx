@@ -16,34 +16,70 @@ const generateHistory = (probability: number) => {
 const initialMonth = "January";
 
 export const INITIAL_HABITS: Habit[] = [
-  { id: '1', name: 'Finish all work tasks by Friday', emoji: '✅', completed: true, streak: 5, difficulty: 'Medium', category: 'Work', history: { [initialMonth]: generateHistory(0.7) }, activeMonths: [...MONTHS_LIST], goal: 31, frequency: '7/7' },
-  { id: '2', name: 'Save a set amount this week', emoji: '💰', completed: true, streak: 12, difficulty: 'Easy', category: 'Work', history: { [initialMonth]: generateHistory(0.9) }, activeMonths: [...MONTHS_LIST], goal: 31, frequency: '7/7' },
-  { id: '3', name: 'Try a new hobby or activity', emoji: '🎨', completed: false, streak: 8, difficulty: 'Medium', category: 'Mind', history: { [initialMonth]: generateHistory(0.4) }, activeMonths: [...MONTHS_LIST], goal: 31, frequency: '7/7' },
-  { id: '4', name: 'Call or visit a family member', emoji: '☎️', completed: true, streak: 20, difficulty: 'Easy', category: 'Spirit', history: { [initialMonth]: generateHistory(0.6) }, activeMonths: [...MONTHS_LIST], goal: 31, frequency: '7/7' },
-  { id: '5', name: 'Exercise for 4-5 days this week', emoji: '🏋️', completed: true, streak: 10, difficulty: 'Medium', category: 'Body', history: { [initialMonth]: generateHistory(0.7) }, activeMonths: [...MONTHS_LIST], goal: 31, frequency: '7/7' },
-  { id: '6', name: 'Limit distractions during work', emoji: '📵', completed: true, streak: 31, difficulty: 'Hard', category: 'Work', history: { [initialMonth]: generateHistory(0.8) }, activeMonths: [...MONTHS_LIST], goal: 31, frequency: '7/7' },
-  { id: '7', name: 'Express gratitude to at least 1 person', emoji: '🙏', completed: false, streak: 3, difficulty: 'Easy', category: 'Spirit', history: { [initialMonth]: generateHistory(0.9) }, activeMonths: [...MONTHS_LIST], goal: 31, frequency: '7/7' },
-  { id: '8', name: 'Learn one new skill or concept', emoji: '💡', completed: true, streak: 7, difficulty: 'Medium', category: 'Mind', history: { [initialMonth]: generateHistory(0.5) }, activeMonths: [...MONTHS_LIST], goal: 31, frequency: '7/7' },
-  { id: '9', name: 'Drink 8 glasses of water daily', emoji: '💧', completed: true, streak: 15, difficulty: 'Easy', category: 'Body', history: { [initialMonth]: generateHistory(0.9) }, activeMonths: [...MONTHS_LIST], goal: 31, frequency: '7/7' },
-  { id: '10', name: 'Walk 10,000 steps daily', emoji: '👟', completed: true, streak: 25, difficulty: 'Medium', category: 'Body', history: { [initialMonth]: generateHistory(0.7) }, activeMonths: [...MONTHS_LIST], goal: 31, frequency: '7/7' },
+  { id: '1', name: 'Deep Work Protocol (90m)', emoji: '💻', completed: true, streak: 5, difficulty: 'Hard', category: 'Work', history: { [initialMonth]: generateHistory(0.7) }, activeMonths: [...MONTHS_LIST], goal: 31, frequency: '7/7' },
+  { id: '2', name: 'Strategic Portfolio Review', emoji: '💰', completed: true, streak: 12, difficulty: 'Medium', category: 'Work', history: { [initialMonth]: generateHistory(0.9) }, activeMonths: [...MONTHS_LIST], goal: 4, frequency: '1/7' },
+  { id: '3', name: 'Cold Exposure Therapy', emoji: '❄️', completed: false, streak: 8, difficulty: 'Hard', category: 'Body', history: { [initialMonth]: generateHistory(0.4) }, activeMonths: [...MONTHS_LIST], goal: 31, frequency: '7/7' },
+  { id: '4', name: 'Zero-Distraction Reading', emoji: '📚', completed: true, streak: 20, difficulty: 'Medium', category: 'Mind', history: { [initialMonth]: generateHistory(0.6) }, activeMonths: [...MONTHS_LIST], goal: 31, frequency: '7/7' },
+  { id: '5', name: 'High-Intensity Intervals', emoji: '🏃', completed: true, streak: 10, difficulty: 'Hard', category: 'Body', history: { [initialMonth]: generateHistory(0.7) }, activeMonths: [...MONTHS_LIST], goal: 12, frequency: '3/7' },
+  { id: '6', name: 'Morning Sunlight Exposure', emoji: '☀️', completed: true, streak: 31, difficulty: 'Easy', category: 'Body', history: { [initialMonth]: generateHistory(0.8) }, activeMonths: [...MONTHS_LIST], goal: 31, frequency: '7/7' },
+  { id: '7', name: 'Daily Stoic Meditation', emoji: '🧘', completed: false, streak: 3, difficulty: 'Easy', category: 'Spirit', history: { [initialMonth]: generateHistory(0.9) }, activeMonths: [...MONTHS_LIST], goal: 31, frequency: '7/7' },
+  { id: '8', name: 'Network Outreach (Elite)', emoji: '🤝', completed: true, streak: 7, difficulty: 'Medium', category: 'Work', history: { [initialMonth]: generateHistory(0.5) }, activeMonths: [...MONTHS_LIST], goal: 20, frequency: '5/7' },
+  { id: '9', name: 'Hydration Protocol (4L)', emoji: '💧', completed: true, streak: 15, difficulty: 'Easy', category: 'Body', history: { [initialMonth]: generateHistory(0.9) }, activeMonths: [...MONTHS_LIST], goal: 31, frequency: '7/7' },
+  { id: '10', name: 'Evening Digital Detox', emoji: '📵', completed: true, streak: 25, difficulty: 'Medium', category: 'Mind', history: { [initialMonth]: generateHistory(0.7) }, activeMonths: [...MONTHS_LIST], goal: 31, frequency: '7/7' },
 ];
 
 export const MONTHLY_GOALS: MonthlyGoal[] = [
-  { month: 'January', goals: [{ text: 'Finish a chapter', completed: false }, { text: 'Save $500', completed: true }, { text: 'Clean our garage', completed: false }, { text: 'Maintain weight', completed: true }] },
-  { month: 'February', goals: [{ text: 'Pay off debt', completed: false }, { text: 'Book vacation', completed: false }, { text: 'Update CV', completed: true }, { text: 'Morning runs', completed: true }] },
-  { month: 'March', goals: [{ text: 'Project launch', completed: false }, { text: 'Invest $1000', completed: false }, { text: 'Garden prep', completed: false }, { text: 'Visit family', completed: true }] },
-  { month: 'April', goals: [{ text: 'Skill course', completed: true }, { text: 'Max out 401k', completed: false }, { text: 'Tax season', completed: false }, { text: 'Spring clean', completed: false }] },
-  { month: 'May', goals: [{ text: 'Conference prep', completed: false }, { text: 'New savings account', completed: false }, { text: 'Social events', completed: true }, { text: 'Daily meditation', completed: true }] },
-  { month: 'June', goals: [{ text: 'Mid-year review', completed: false }, { text: 'Holiday fund', completed: false }, { text: 'Health checkup', completed: true }, { text: 'Solo travel', completed: false }] },
+  { month: 'January', goals: [{ text: 'Q1 Strategy Finalized', completed: true }, { text: 'Reserve ₹100k Capital', completed: true }, { text: 'Audit Operational Leaks', completed: false }, { text: 'Sub-15% Body Fat', completed: true }] },
+  { month: 'February', goals: [{ text: 'Launch Alpha Protocol', completed: false }, { text: 'Master Prompt Engineering', completed: false }, { text: 'Legacy Trust Setup', completed: true }, { text: 'Morning Run Consistency', completed: true }] },
+  { month: 'March', goals: [{ text: 'Market Expansion Phase', completed: false }, { text: 'Diversify to 3 Assets', completed: false }, { text: 'System Maintenance', completed: false }, { text: 'Family Retreat Plan', completed: true }] },
 ];
 
 export const ANNUAL_CATEGORIES: AnnualCategory[] = [
-  { name: 'Career', goals: [{ text: 'Public speak 4 times', completed: false }, { text: 'Earn promotion', completed: false }, { text: 'Become a mentor', completed: true }, { text: 'Start a new group', completed: false }] },
-  { name: 'Relationship', goals: [{ text: 'Make 1 new friend', completed: true }, { text: 'Cut out toxic people', completed: false }, { text: 'Visit family monthly', completed: true }, { text: 'No kids vacation', completed: false }] },
-  { name: 'Financial', goals: [{ text: 'Pay off debt', completed: false }, { text: 'Max out 401k', completed: false }, { text: 'Purchase a new car', completed: false }, { text: 'Increase annual salary', completed: true }] },
-  { name: 'Personal Development', goals: [{ text: 'Learn new technical skill', completed: true }, { text: 'Pass an actuary exam', completed: false }, { text: 'Volunteer 10 times', completed: false }, { text: 'Start a new hobby', completed: true }] },
-  { name: 'Health & Fitness', goals: [{ text: 'Maintain weight', completed: true }, { text: 'Cut out sugar', completed: false }, { text: 'Start running', completed: true }, { text: 'Reach 10% body fat', completed: false }] },
-  { name: 'Self-Care', goals: [{ text: 'Take a solo vacation', completed: false }, { text: 'Start journaling', completed: true }, { text: 'Read 30 books', completed: false }, { text: 'Weekly massage', completed: true }] },
+  { 
+    name: 'Wealth Architecture', 
+    goals: [
+      { text: 'Achieve ₹5M in Liquid Assets', completed: false },
+      { text: 'Scale Passive Revenue to ₹200k/mo', completed: false },
+      { text: 'Diversify into Real Estate & Blue Chips', completed: true },
+      { text: 'Optimize Tax Strategy (Elite Tier)', completed: true }
+    ] 
+  },
+  { 
+    name: 'Business Legacy', 
+    goals: [
+      { text: 'Launch Global V2 Platform', completed: false },
+      { text: 'Acquire 10 High-Value Retainers', completed: true },
+      { text: 'Automate 80% of Core Operations', completed: false },
+      { text: 'Publish Thought Leadership Series', completed: false }
+    ] 
+  },
+  { 
+    name: 'High-Performance Body', 
+    goals: [
+      { text: 'Sub-12% Body Fat Composition', completed: true },
+      { text: 'Complete Full Triathlon Circuit', completed: false },
+      { text: 'Perfect 95% Sleep Fidelity (8h)', completed: false },
+      { text: 'Zero Refined Sugar Protocol', completed: true }
+    ] 
+  },
+  { 
+    name: 'Intellectual Mastery', 
+    goals: [
+      { text: 'Read 52 High-Impact Monographs', completed: false },
+      { text: 'Obtain AI Systems Certification', completed: true },
+      { text: 'Master Advanced Game Theory', completed: false },
+      { text: 'Attend 2 Global Masterminds', completed: true }
+    ] 
+  },
+  { 
+    name: 'Social & Impact', 
+    goals: [
+      { text: 'Establish Family Education Trust', completed: false },
+      { text: 'Mentor 3 Elite System Architects', completed: true },
+      { text: 'Biannual Geographic Exploration', completed: true },
+      { text: 'Zero Toxic Relationship Drift', completed: false }
+    ] 
+  },
 ];
 
 export const MOCK_CHART_DATA = [

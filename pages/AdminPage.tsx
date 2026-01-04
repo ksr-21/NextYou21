@@ -104,7 +104,7 @@ export const AdminPage: React.FC = () => {
     }
   };
 
-  const getRemainingDays = (expiryStr: string) => {
+  const getRemainingDays = (expiryStr: string | null | undefined) => {
     if (!expiryStr) return 0;
     const diff = new Date(expiryStr).getTime() - new Date().getTime();
     return Math.max(0, Math.ceil(diff / (1000 * 60 * 60 * 24)));
@@ -151,49 +151,63 @@ export const AdminPage: React.FC = () => {
 
           <div className="bg-white rounded-[2rem] md:rounded-[3rem] border border-slate-100 shadow-2xl overflow-hidden">
             <div className="overflow-x-auto">
-              <table className="w-full text-left min-w-[800px]">
+              <table className="w-full text-left min-w-[900px]">
                 <thead>
                   <tr className="bg-slate-50 border-b border-slate-100">
                     <th className="px-8 py-6 text-[10px] font-black uppercase tracking-widest text-slate-400">Architect</th>
                     <th className="px-8 py-6 text-[10px] font-black uppercase tracking-widest text-slate-400 text-center">Enrollment</th>
+                    <th className="px-8 py-6 text-[10px] font-black uppercase tracking-widest text-slate-400 text-center">Rem. Cycles</th>
                     <th className="px-8 py-6 text-[10px] font-black uppercase tracking-widest text-slate-400 text-center">Status</th>
                     <th className="px-8 py-6 text-[10px] font-black uppercase tracking-widest text-slate-400 text-right">Ops</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-50">
-                  {filteredUsers.map((user) => (
-                    <tr 
-                      key={user.id} 
-                      className={`hover:bg-slate-50/50 transition-colors group ${user.autoApproved ? 'bg-amber-50/40' : ''}`}
-                    >
-                      <td className="px-8 py-6">
-                        <div className="flex items-center gap-4 cursor-pointer" onClick={() => setSelectedUser(user)}>
-                          <div className={`w-10 h-10 md:w-12 md:h-12 rounded-xl flex items-center justify-center text-white font-black shadow-lg group-hover:scale-110 transition-transform uppercase ${user.autoApproved ? 'bg-[#76C7C0]' : 'bg-slate-900'}`}>
-                            {user.fullName?.charAt(0)}
-                          </div>
-                          <div>
-                            <div className="flex items-center gap-2">
-                              <div className="font-black text-slate-900 text-sm uppercase tracking-tight group-hover:text-indigo-600 transition-colors truncate max-w-[150px]">{user.fullName}</div>
-                              {user.autoApproved && (
-                                <span className="bg-amber-400 text-white text-[7px] font-black px-1.5 py-0.5 rounded uppercase tracking-widest shadow-sm">Promo</span>
-                              )}
+                  {filteredUsers.map((user) => {
+                    const daysLeft = getRemainingDays(user.validUntil);
+                    return (
+                      <tr 
+                        key={user.id} 
+                        className={`hover:bg-slate-50/50 transition-colors group ${user.autoApproved ? 'bg-amber-50/40' : ''}`}
+                      >
+                        <td className="px-8 py-6">
+                          <div className="flex items-center gap-4 cursor-pointer" onClick={() => setSelectedUser(user)}>
+                            <div className={`w-10 h-10 md:w-12 md:h-12 rounded-xl flex items-center justify-center text-white font-black shadow-lg group-hover:scale-110 transition-transform uppercase ${user.autoApproved ? 'bg-[#76C7C0]' : 'bg-slate-900'}`}>
+                              {user.fullName?.charAt(0)}
                             </div>
-                            <div className="text-[10px] font-bold text-slate-400 truncate max-w-[150px]">{user.email}</div>
+                            <div>
+                              <div className="flex items-center gap-2">
+                                <div className="font-black text-slate-900 text-sm uppercase tracking-tight group-hover:text-indigo-600 transition-colors truncate max-w-[150px]">{user.fullName}</div>
+                                {user.autoApproved && (
+                                  <span className="bg-amber-400 text-white text-[7px] font-black px-1.5 py-0.5 rounded uppercase tracking-widest shadow-sm">Promo</span>
+                                )}
+                              </div>
+                              <div className="text-[10px] font-bold text-slate-400 truncate max-w-[150px]">{user.email}</div>
+                            </div>
                           </div>
-                        </div>
-                      </td>
-                      <td className="px-8 py-6 text-center text-sm font-black italic">{new Date(user.createdAt).toLocaleDateString()}</td>
-                      <td className="px-8 py-6 text-center">
-                        <span className={`px-4 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest ${user.status === 'approved' ? 'bg-emerald-50 text-emerald-600' : user.status === 'blocked' ? 'bg-rose-50 text-rose-600' : 'bg-amber-50 text-amber-600'}`}>{user.status}</span>
-                      </td>
-                      <td className="px-8 py-6 text-right">
-                         <div className="flex justify-end gap-2">
-                            <button onClick={() => setShowApprovalModal(user.id)} className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 font-bold hover:bg-emerald-500 hover:text-white transition-all">✓</button>
-                            <button onClick={() => updateStatus(user.id, 'blocked')} className="w-8 h-8 rounded-lg bg-rose-50 text-rose-600 font-bold hover:bg-rose-500 hover:text-white transition-all">×</button>
-                         </div>
-                      </td>
-                    </tr>
-                  ))}
+                        </td>
+                        <td className="px-8 py-6 text-center text-sm font-black italic">{new Date(user.createdAt).toLocaleDateString()}</td>
+                        <td className="px-8 py-6 text-center">
+                          <div className="flex flex-col items-center">
+                            <span className={`text-sm font-black italic ${daysLeft <= 7 ? 'text-rose-500' : 'text-slate-900'}`}>
+                              {user.validUntil ? `${daysLeft} Days` : 'N/A'}
+                            </span>
+                            {user.validUntil && (
+                              <span className="text-[8px] font-bold text-slate-300 uppercase">Until {new Date(user.validUntil).toLocaleDateString()}</span>
+                            )}
+                          </div>
+                        </td>
+                        <td className="px-8 py-6 text-center">
+                          <span className={`px-4 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest ${user.status === 'approved' ? 'bg-emerald-50 text-emerald-600' : user.status === 'blocked' ? 'bg-rose-50 text-rose-600' : 'bg-amber-50 text-amber-600'}`}>{user.status}</span>
+                        </td>
+                        <td className="px-8 py-6 text-right">
+                           <div className="flex justify-end gap-2">
+                              <button onClick={() => setShowApprovalModal(user.id)} className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 font-bold hover:bg-emerald-500 hover:text-white transition-all">✓</button>
+                              <button onClick={() => updateStatus(user.id, 'blocked')} className="w-8 h-8 rounded-lg bg-rose-50 text-rose-600 font-bold hover:bg-rose-500 hover:text-white transition-all">×</button>
+                           </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>

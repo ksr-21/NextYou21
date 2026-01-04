@@ -35,8 +35,6 @@ const THEME = {
 const CATEGORIES: Habit['category'][] = ['Mind', 'Body', 'Spirit', 'Work'];
 
 export const SetupView: React.FC<SetupViewProps> = ({ 
-  isDummyData,
-  onClearDummyData,
   habits, 
   onUpdateHabit, 
   onDeleteHabit, 
@@ -46,7 +44,6 @@ export const SetupView: React.FC<SetupViewProps> = ({
   config,
   onUpdateConfig,
   subscriptionRemaining = 0,
-  allTabs
 }) => {
   const [selectedConfigMonth, setSelectedConfigMonth] = useState<string>(MONTHS_LIST[0]);
 
@@ -139,10 +136,6 @@ export const SetupView: React.FC<SetupViewProps> = ({
             )}
           </div>
         </div>
-
-        {isDummyData && (
-            <button onClick={onClearDummyData} className="w-full py-3 rounded-xl border border-dashed border-red-300 text-red-400 text-[10px] font-black uppercase hover:bg-red-50 transition-colors">Clear Demo Data</button>
-        )}
       </div>
 
       {/* --- RIGHT CONTENT --- */}

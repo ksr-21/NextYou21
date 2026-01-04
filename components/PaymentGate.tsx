@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { db } from '../services/firebase.ts';
 import { Coupon } from '../types.ts';
@@ -20,7 +19,8 @@ export const PaymentGate: React.FC<PaymentGateProps> = ({ onSuccess, userEmail, 
     
     // If it's 0 due to 100% coupon, go to clearance directly
     if (parseFloat(finalAmount) === 0) {
-      handleCompleteAccess(planName === 'Strategic' ? 365 : 90, true); 
+      // Corrected: Tactical plan is 30 days, Strategic is 365 days.
+      handleCompleteAccess(planName === 'Strategic' ? 365 : 30, true); 
       return;
     }
 
@@ -174,7 +174,7 @@ export const PaymentGate: React.FC<PaymentGateProps> = ({ onSuccess, userEmail, 
              
              {/* Price Box - Clickable if amount is 0 */}
              <div 
-               onClick={() => calculatePrice(49, 'tactical') === '0' && handleCompleteAccess(90, true)}
+               onClick={() => calculatePrice(49, 'tactical') === '0' && handleCompleteAccess(30, true)}
                className={`flex items-baseline gap-3 my-12 p-4 rounded-3xl transition-all ${calculatePrice(49, 'tactical') === '0' ? 'cursor-pointer bg-emerald-50 hover:bg-emerald-100 border-2 border-dashed border-emerald-200' : ''}`}
              >
                 <span className={`text-6xl font-black italic tracking-tighter ${calculatePrice(49, 'tactical') === '0' ? 'text-emerald-600' : 'text-slate-900'}`}>
@@ -203,7 +203,7 @@ export const PaymentGate: React.FC<PaymentGateProps> = ({ onSuccess, userEmail, 
           </div>
 
           {/* Strategic Vision */}
-          <div className="bg-[#111827] p-12 rounded-[4.5rem] text-white border border-white/5 shadow-[0_50px_100px_-20px_rgba(0,0,0,0.3)] relative overflow-hidden group">
+          <div className="bg-[#111827] p-12 rounded-[4.5rem] text-white border border-white/5 shadow-[0_50px_100px_-20px_rgba(0,0,0,0.1)] relative overflow-hidden group">
              <div className="absolute top-[-10%] right-[-10%] w-48 h-48 bg-[#76C7C0]/10 rounded-full blur-[80px]" />
              <h3 className="text-2xl font-black uppercase italic text-[#76C7C0] mb-1">Strategic</h3>
              <p className="text-slate-500 text-[10px] font-black uppercase tracking-widest mb-10">Annual Authority</p>
