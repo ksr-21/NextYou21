@@ -1,5 +1,5 @@
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { db, auth } from '../services/firebase.ts';
 import { Coupon } from '../types.ts';
 
@@ -22,7 +22,12 @@ export const AdminPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [view, setView] = useState<'users' | 'coupons'>('users');
-  const [filter, setFilter] = useState<'all' | 'pending' | 'approved' | 'blocked'>('all');
+  
+  // Advanced Filter State
+  const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'approved' | 'blocked'>('all');
+  const [paymentFilter, setPaymentFilter] = useState<'all' | 'paid' | 'unpaid'>('all');
+  const [timeFilter, setTimeFilter] = useState<'all' | '24h' | '7d' | '30d'>('all');
+  const [searchTerm, setSearchTerm] = useState('');
   
   const [showApprovalModal, setShowApprovalModal] = useState<string | null>(null);
   const [selectedUser, setSelectedUser] = useState<AdminUser | null>(null);
@@ -124,7 +129,54 @@ export const AdminPage: React.FC = () => {
     }
   };
 
-  const filteredUsers = users.filter(u => filter === 'all' || u.status === filter);
+  const processedUsers = useMemo(() => {
+    let result = [...users];
+
+    // Sort: Latest to Old
+    result.sort((a, b) => {
+      const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+      const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+      return dateB - dateA;
+    });
+
+    // Search Filter
+    if (searchTerm) {
+      const query = searchTerm.toLowerCase();
+      result = result.filter(u => 
+        u.fullName?.toLowerCase().includes(query) || 
+        u.email?.toLowerCase().includes(query)
+      );
+    }
+
+    // Status Filter
+    if (statusFilter !== 'all') {
+      result = result.filter(u => u.status === statusFilter);
+    }
+
+    // Payment Filter
+    if (paymentFilter === 'paid') {
+      result = result.filter(u => u.isPaid === true);
+    } else if (paymentFilter === 'unpaid') {
+      result = result.filter(u => !u.isPaid);
+    }
+
+    // Time Filter
+    if (timeFilter !== 'all') {
+      const now = new Date().getTime();
+      const msMap = {
+        '24h': 24 * 60 * 60 * 1000,
+        '7d': 7 * 24 * 60 * 60 * 1000,
+        '30d': 30 * 24 * 60 * 60 * 1000
+      };
+      const limit = msMap[timeFilter];
+      result = result.filter(u => {
+        const created = u.createdAt ? new Date(u.createdAt).getTime() : 0;
+        return (now - created) < limit;
+      });
+    }
+
+    return result;
+  }, [users, searchTerm, statusFilter, paymentFilter, timeFilter]);
 
   if (error) {
     return (
@@ -136,7 +188,7 @@ export const AdminPage: React.FC = () => {
   }
 
   return (
-    <div className="max-w-[1400px] mx-auto px-6 py-12 animate-in fade-in duration-700">
+    <div className="max-w-[1400px] mx-auto px-6 py-12 animate-in fade-in duration-700 pb-40">
       <header className="mb-12 flex flex-col md:flex-row justify-between items-start md:items-end gap-6">
         <div>
           <div className="flex items-center gap-2 mb-2">
@@ -152,11 +204,67 @@ export const AdminPage: React.FC = () => {
       </header>
 
       {view === 'users' ? (
-        <>
-          <div className="flex bg-white border border-slate-100 p-1.5 rounded-2xl shadow-sm w-fit mb-8">
-            {['all', 'pending', 'approved', 'blocked'].map((f) => (
-              <button key={f} onClick={() => setFilter(f as any)} className={`px-4 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all ${filter === f ? 'bg-indigo-500 text-white shadow-md' : 'text-slate-400 hover:text-slate-600'}`}>{f}</button>
-            ))}
+        <div className="space-y-6">
+          {/* SEARCH & FILTERS BAR */}
+          <div className="flex flex-col xl:flex-row gap-4 bg-white p-6 rounded-[2.5rem] border border-slate-100 shadow-sm items-center">
+            {/* Search Input */}
+            <div className="relative flex-1 w-full">
+              <svg className="absolute left-5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+              <input 
+                type="text"
+                placeholder="Search Architect Identity..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full bg-slate-50 border-2 border-slate-50 focus:border-[#76C7C0] focus:bg-white rounded-2xl pl-12 pr-6 py-3.5 outline-none font-bold text-sm text-slate-900 transition-all placeholder:text-slate-300"
+              />
+            </div>
+
+            {/* Filter Dropdowns Group */}
+            <div className="flex flex-wrap items-center gap-3 w-full xl:w-auto">
+              {/* Status Filter */}
+              <div className="flex flex-col gap-1.5 min-w-[140px]">
+                <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest ml-1">Fleet Status</label>
+                <select 
+                  value={statusFilter}
+                  onChange={(e) => setStatusFilter(e.target.value as any)}
+                  className="bg-white border-2 border-slate-50 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest outline-none focus:border-[#76C7C0] cursor-pointer"
+                >
+                  <option value="all">All Status</option>
+                  <option value="pending">Pending</option>
+                  <option value="approved">Approved</option>
+                  <option value="blocked">Blocked</option>
+                </select>
+              </div>
+
+              {/* Payment Filter */}
+              <div className="flex flex-col gap-1.5 min-w-[140px]">
+                <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest ml-1">Verification</label>
+                <select 
+                  value={paymentFilter}
+                  onChange={(e) => setPaymentFilter(e.target.value as any)}
+                  className="bg-white border-2 border-slate-50 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest outline-none focus:border-[#76C7C0] cursor-pointer"
+                >
+                  <option value="all">All Verification</option>
+                  <option value="paid">Paid</option>
+                  <option value="unpaid">Unpaid/Unverified</option>
+                </select>
+              </div>
+
+              {/* Time Filter */}
+              <div className="flex flex-col gap-1.5 min-w-[140px]">
+                <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest ml-1">Registration</label>
+                <select 
+                  value={timeFilter}
+                  onChange={(e) => setTimeFilter(e.target.value as any)}
+                  className="bg-white border-2 border-slate-50 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest outline-none focus:border-[#76C7C0] cursor-pointer"
+                >
+                  <option value="all">Lifetime</option>
+                  <option value="24h">Last 24 Hours</option>
+                  <option value="7d">Last 7 Days</option>
+                  <option value="30d">Last 30 Days</option>
+                </select>
+              </div>
+            </div>
           </div>
 
           <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-2xl overflow-hidden">
@@ -166,21 +274,30 @@ export const AdminPage: React.FC = () => {
                   <tr>
                     <th className="px-8 py-6 text-[10px] font-black uppercase tracking-widest text-slate-400">Architect</th>
                     <th className="px-8 py-6 text-[10px] font-black uppercase tracking-widest text-slate-400">Contact Intel</th>
-                    <th className="px-8 py-6 text-[10px] font-black uppercase tracking-widest text-slate-400 text-center">Cycles Rem.</th>
+                    <th className="px-8 py-6 text-[10px] font-black uppercase tracking-widest text-slate-400 text-center">Joined</th>
                     <th className="px-8 py-6 text-[10px] font-black uppercase tracking-widest text-slate-400 text-center">Status</th>
                     <th className="px-8 py-6 text-[10px] font-black uppercase tracking-widest text-slate-400 text-right">Ops</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-50">
-                  {filteredUsers.map((user) => {
+                  {processedUsers.length === 0 ? (
+                    <tr>
+                      <td colSpan={5} className="py-20 text-center text-slate-300 font-black italic uppercase tracking-[0.2em]">Zero Identities Found in Matrix</td>
+                    </tr>
+                  ) : processedUsers.map((user) => {
                     const daysLeft = getRemainingDays(user.validUntil);
+                    const joinedDate = user.createdAt ? new Date(user.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: '2-digit' }) : 'N/A';
+                    
                     return (
                       <tr key={user.id} className="hover:bg-slate-50/50 transition-colors group">
                         <td className="px-8 py-6">
                           <div className="flex items-center gap-4 cursor-pointer" onClick={() => setSelectedUser(user)}>
                             <div className="w-10 h-10 rounded-xl bg-slate-900 flex items-center justify-center text-white font-black text-sm uppercase">{user.fullName?.charAt(0)}</div>
                             <div>
-                              <div className="font-black text-slate-900 text-sm uppercase tracking-tight">{user.fullName}</div>
+                              <div className="font-black text-slate-900 text-sm uppercase tracking-tight flex items-center gap-2">
+                                {user.fullName}
+                                {!user.isPaid && <span className="w-1.5 h-1.5 rounded-full bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.6)]" title="Unverified Payment" />}
+                              </div>
                               <div className="text-[10px] font-bold text-slate-400">{user.email}</div>
                             </div>
                           </div>
@@ -197,16 +314,14 @@ export const AdminPage: React.FC = () => {
                            </a>
                         </td>
                         <td className="px-8 py-6 text-center">
-                          <span className={`text-sm font-black italic ${daysLeft <= 7 ? 'text-rose-500' : 'text-slate-900'}`}>
-                            {user.validUntil ? `${daysLeft} Days` : 'N/A'}
-                          </span>
+                          <span className="text-[10px] font-black text-slate-900 uppercase tracking-tight">{joinedDate}</span>
                         </td>
                         <td className="px-8 py-6 text-center">
-                          <span className={`px-4 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest ${user.status === 'approved' ? 'bg-emerald-50 text-emerald-600' : 'bg-amber-50 text-amber-600'}`}>{user.status}</span>
+                          <span className={`px-4 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest ${user.status === 'approved' ? 'bg-emerald-50 text-emerald-600' : user.status === 'blocked' ? 'bg-rose-50 text-rose-600' : 'bg-amber-50 text-amber-600'}`}>{user.status}</span>
                         </td>
                         <td className="px-8 py-6 text-right">
                            <div className="flex justify-end gap-2">
-                              <button onClick={() => setShowApprovalModal(user.id)} className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 font-bold hover:bg-emerald-500 hover:text-white transition-all">✓</button>
+                              <button onClick={() => setShowApprovalModal(user.id)} className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 font-bold hover:bg-emerald-500 hover:text-white transition-all shadow-sm">✓</button>
                            </div>
                         </td>
                       </tr>
@@ -216,8 +331,9 @@ export const AdminPage: React.FC = () => {
               </table>
             </div>
           </div>
-        </>
+        </div>
       ) : (
+        /* Coupons view remains the same functional logic but we update the Forge button spacing if needed */
         <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
            <div className="flex justify-between items-center bg-white p-6 rounded-3xl border border-slate-100 shadow-sm">
               <div>
@@ -290,6 +406,7 @@ export const AdminPage: React.FC = () => {
                {[30, 90, 365, 999].map(days => (
                  <button key={days} onClick={() => updateStatus(showApprovalModal, 'approved', days)} className="p-6 bg-slate-50 hover:bg-slate-900 hover:text-white rounded-2xl font-black text-[10px] uppercase transition-all">{days === 999 ? 'LIFETIME' : `${days} DAYS`}</button>
                ))}
+               <button onClick={() => updateStatus(showApprovalModal, 'blocked')} className="p-6 bg-rose-50 text-rose-600 hover:bg-rose-600 hover:text-white rounded-2xl font-black text-[10px] uppercase transition-all col-span-2">Block Access</button>
              </div>
           </div>
         </div>
@@ -375,6 +492,10 @@ export const AdminPage: React.FC = () => {
                 <div className="p-6 bg-slate-900 rounded-3xl text-white">
                    <p className="text-[9px] font-black text-white/30 uppercase tracking-widest mb-1 italic">Cycles Left</p>
                    <p className="text-lg font-black text-[#76C7C0] italic">{getRemainingDays(selectedUser.validUntil)} Remaining</p>
+                </div>
+                <div className="p-6 bg-slate-50 rounded-3xl border border-slate-100 col-span-2">
+                   <p className="text-[9px] font-black text-slate-300 uppercase tracking-widest mb-1 italic">Identification Date</p>
+                   <p className="text-sm font-bold text-slate-600 uppercase tracking-tight">Joined {selectedUser.createdAt ? new Date(selectedUser.createdAt).toLocaleString() : 'N/A'}</p>
                 </div>
              </div>
              <button onClick={() => setSelectedUser(null)} className="w-full mt-10 py-5 bg-slate-100 text-slate-400 rounded-3xl font-black uppercase tracking-[0.4em] text-[10px] hover:text-rose-500 transition-all">Terminate View</button>
