@@ -29,9 +29,8 @@ export const AdminPage: React.FC = () => {
   const [showCouponModal, setShowCouponModal] = useState(false);
   
   const [newCode, setNewCode] = useState('');
-  const [newDiscount, setNewDiscount] = useState('50');
+  const [newDiscount, setNewDiscount] = useState(50);
   const [newPlanType, setNewPlanType] = useState<'tactical' | 'strategic' | 'all'>('all');
-  const [customDays, setCustomDays] = useState('30');
 
   useEffect(() => {
     const currentUser = auth.currentUser;
@@ -85,6 +84,43 @@ export const AdminPage: React.FC = () => {
       setShowApprovalModal(null);
     } catch (err: any) {
       alert(`Update failed: ${err.message}`);
+    }
+  };
+
+  const forgeCoupon = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newCode) return;
+    try {
+      const id = Math.random().toString(36).substr(2, 9);
+      await db.collection('coupons').doc(id).set({
+        id,
+        code: newCode.toUpperCase(),
+        discount: newDiscount,
+        planType: newPlanType,
+        active: true,
+        createdAt: new Date().toISOString()
+      });
+      setNewCode('');
+      setShowCouponModal(false);
+    } catch (err: any) {
+      alert(`Forge failed: ${err.message}`);
+    }
+  };
+
+  const toggleCouponStatus = async (coupon: Coupon) => {
+    try {
+      await db.collection('coupons').doc(coupon.id).update({ active: !coupon.active });
+    } catch (err: any) {
+      alert(`Toggle failed: ${err.message}`);
+    }
+  };
+
+  const deleteCoupon = async (id: string) => {
+    if (!confirm('Destroy this protocol code?')) return;
+    try {
+      await db.collection('coupons').doc(id).delete();
+    } catch (err: any) {
+      alert(`Delete failed: ${err.message}`);
     }
   };
 
@@ -182,7 +218,66 @@ export const AdminPage: React.FC = () => {
           </div>
         </>
       ) : (
-        <div className="py-20 text-center text-slate-400 font-black italic uppercase tracking-widest">Coupons view available in Master Forge</div>
+        <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
+           <div className="flex justify-between items-center bg-white p-6 rounded-3xl border border-slate-100 shadow-sm">
+              <div>
+                <h3 className="text-xl font-black italic text-slate-900 uppercase tracking-tight">Active Protocol Codes</h3>
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Global access discounts for architects.</p>
+              </div>
+              <button 
+                onClick={() => setShowCouponModal(true)}
+                className="bg-[#76C7C0] text-white px-8 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-[#58A6A0] transition-all shadow-lg"
+              >
+                Forge Coupon
+              </button>
+           </div>
+
+           <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-2xl overflow-hidden">
+             <div className="overflow-x-auto">
+               <table className="w-full text-left">
+                 <thead className="bg-slate-50 border-b border-slate-100">
+                   <tr>
+                     <th className="px-8 py-6 text-[10px] font-black uppercase tracking-widest text-slate-400">Code</th>
+                     <th className="px-8 py-6 text-[10px] font-black uppercase tracking-widest text-slate-400 text-center">Discount</th>
+                     <th className="px-8 py-6 text-[10px] font-black uppercase tracking-widest text-slate-400 text-center">Plan Restriction</th>
+                     <th className="px-8 py-6 text-[10px] font-black uppercase tracking-widest text-slate-400 text-center">Status</th>
+                     <th className="px-8 py-6 text-[10px] font-black uppercase tracking-widest text-slate-400 text-right">Ops</th>
+                   </tr>
+                 </thead>
+                 <tbody className="divide-y divide-slate-50">
+                   {coupons.length === 0 ? (
+                     <tr>
+                        <td colSpan={5} className="px-8 py-20 text-center text-slate-300 font-black italic uppercase tracking-[0.2em]">Zero Protocols In Forge</td>
+                     </tr>
+                   ) : coupons.map((coupon) => (
+                     <tr key={coupon.id} className="hover:bg-slate-50/50 transition-colors group">
+                       <td className="px-8 py-6">
+                          <span className="font-black text-slate-900 text-lg uppercase tracking-wider">{coupon.code}</span>
+                       </td>
+                       <td className="px-8 py-6 text-center">
+                          <span className="text-2xl font-black text-emerald-500 italic">{coupon.discount}%</span>
+                       </td>
+                       <td className="px-8 py-6 text-center">
+                          <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{coupon.planType}</span>
+                       </td>
+                       <td className="px-8 py-6 text-center">
+                          <button 
+                            onClick={() => toggleCouponStatus(coupon)}
+                            className={`px-4 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest transition-all ${coupon.active ? 'bg-emerald-50 text-emerald-600' : 'bg-slate-100 text-slate-400'}`}
+                          >
+                            {coupon.active ? 'Active' : 'Offline'}
+                          </button>
+                       </td>
+                       <td className="px-8 py-6 text-right">
+                          <button onClick={() => deleteCoupon(coupon.id)} className="w-8 h-8 rounded-lg bg-rose-50 text-rose-500 font-bold hover:bg-rose-500 hover:text-white transition-all">×</button>
+                       </td>
+                     </tr>
+                   ))}
+                 </tbody>
+               </table>
+             </div>
+           </div>
+        </div>
       )}
 
       {/* Manual Approval Modal */}
@@ -196,6 +291,58 @@ export const AdminPage: React.FC = () => {
                  <button key={days} onClick={() => updateStatus(showApprovalModal, 'approved', days)} className="p-6 bg-slate-50 hover:bg-slate-900 hover:text-white rounded-2xl font-black text-[10px] uppercase transition-all">{days === 999 ? 'LIFETIME' : `${days} DAYS`}</button>
                ))}
              </div>
+          </div>
+        </div>
+      )}
+
+      {/* Coupon Forge Modal */}
+      {showCouponModal && (
+        <div className="fixed inset-0 z-[2000] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-slate-900/90 backdrop-blur-xl" onClick={() => setShowCouponModal(false)} />
+          <div className="relative w-full max-w-lg bg-white rounded-[3rem] p-10 md:p-14 shadow-2xl animate-in zoom-in">
+             <h3 className="text-3xl font-black italic text-slate-900 mb-8 tracking-tighter uppercase">Forge Protocol.</h3>
+             <form onSubmit={forgeCoupon} className="space-y-6">
+                <div className="space-y-2">
+                   <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Protocol Code</label>
+                   <input 
+                      type="text" 
+                      value={newCode} 
+                      onChange={(e) => setNewCode(e.target.value.toUpperCase())}
+                      className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-6 py-4 outline-none focus:border-[#76C7C0] font-black text-xl uppercase tracking-widest"
+                      placeholder="ACCESS2026"
+                      required
+                   />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                   <div className="space-y-2">
+                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Discount %</label>
+                      <input 
+                         type="number" 
+                         value={newDiscount} 
+                         onChange={(e) => setNewDiscount(parseInt(e.target.value) || 0)}
+                         className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-6 py-4 outline-none focus:border-[#76C7C0] font-black"
+                         min="0" max="100"
+                         required
+                      />
+                   </div>
+                   <div className="space-y-2">
+                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Plan Lock</label>
+                      <select 
+                         value={newPlanType} 
+                         onChange={(e) => setNewPlanType(e.target.value as any)}
+                         className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-4 py-4 outline-none focus:border-[#76C7C0] font-black uppercase text-xs"
+                      >
+                         <option value="all">Universal</option>
+                         <option value="tactical">Tactical Only</option>
+                         <option value="strategic">Strategic Only</option>
+                      </select>
+                   </div>
+                </div>
+                <div className="pt-4">
+                   <button type="submit" className="w-full bg-slate-900 text-white py-5 rounded-2xl font-black uppercase tracking-[0.2em] text-xs hover:bg-[#76C7C0] transition-all shadow-xl">Deploy Protocol</button>
+                   <button type="button" onClick={() => setShowCouponModal(false)} className="w-full mt-4 py-3 text-[10px] font-black text-slate-300 uppercase tracking-widest hover:text-rose-500 transition-colors">Abort Forge</button>
+                </div>
+             </form>
           </div>
         </div>
       )}
