@@ -55,6 +55,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStart }) => {
         
         <div className="hidden lg:flex items-center gap-12">
           <button onClick={() => scrollToSection('methodology')} className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 hover:text-indigo-600 transition-colors">Methodology</button>
+          <button onClick={() => scrollToSection('wealth')} className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 hover:text-indigo-600 transition-colors">Wealth</button>
           <button onClick={() => scrollToSection('architecture')} className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 hover:text-indigo-600 transition-colors">Architecture</button>
           <button onClick={() => scrollToSection('pricing')} className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 hover:text-indigo-600 transition-colors">Pricing</button>
         </div>
@@ -84,7 +85,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStart }) => {
             </h1>
             
             <p className="text-lg md:text-xl text-slate-500 mb-10 md:mb-12 max-w-lg mx-auto lg:mx-0 leading-relaxed font-medium">
-              The high-fidelity command center for architects of life. Track rituals, calibrate performance, and manifest your elite strategic vision.
+              The high-fidelity command center for architects of life. Track rituals, <span className="text-indigo-600 font-bold">architect wealth</span>, and manifest your elite strategic vision.
             </p>
             
             <button 
@@ -153,6 +154,91 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStart }) => {
             </div>
           ))}
         </div>
+      </section>
+
+      {/* 3.5 WEALTH ARCHITECTURE (FINANCE) */}
+      <section id="wealth" className="py-20 md:py-40 px-6 md:px-8 bg-[#0F1115] text-white overflow-hidden relative">
+         <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-emerald-500/10 rounded-full blur-[120px] pointer-events-none" />
+         <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-indigo-500/10 rounded-full blur-[120px] pointer-events-none" />
+
+         <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-20 items-center relative z-10">
+            {/* Visuals - Dark Mode Dashboard Mockup */}
+            <div className="relative">
+              <div className="absolute -inset-4 bg-gradient-to-r from-emerald-500 to-indigo-500 rounded-[3.5rem] blur opacity-20"></div>
+              <div className="bg-[#18181B] rounded-[3rem] p-8 border border-white/10 shadow-2xl relative">
+                  {/* Card 1: Net Liquidity */}
+                  <div className="bg-[#222] p-6 rounded-3xl mb-4 border border-white/5">
+                      <div className="flex justify-between items-center mb-4">
+                         <div className="text-[10px] font-black uppercase text-emerald-400 tracking-widest">Net Liquidity</div>
+                         <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
+                      </div>
+                      <div className="text-4xl md:text-5xl font-black italic tracking-tighter text-white mb-2">₹12.4L</div>
+                      <div className="text-[9px] font-bold text-slate-400 uppercase tracking-wide">+18% vs Last Cycle</div>
+                  </div>
+                  
+                  <div className="grid grid-cols-2 gap-4">
+                      {/* Card 2: Burn Rate */}
+                      <div className="bg-[#222] p-5 rounded-3xl border border-white/5">
+                          <div className="text-[9px] font-black uppercase text-rose-400 tracking-widest mb-3">Burn Rate</div>
+                          <div className="w-full h-2 bg-white/10 rounded-full mb-3 overflow-hidden">
+                              <div className="h-full bg-rose-500 w-[65%]"></div>
+                          </div>
+                          <div className="text-lg font-bold text-white tracking-tight">₹45k <span className="text-[9px] text-slate-500 font-normal">/ mo</span></div>
+                      </div>
+                      
+                      {/* Card 3: Asset Allocation */}
+                      <div className="bg-[#222] p-5 rounded-3xl border border-white/5 flex flex-col justify-between">
+                          <div className="text-[9px] font-black uppercase text-indigo-400 tracking-widest mb-1">Portfolio</div>
+                          <div className="flex items-center gap-3">
+                              <div className="w-8 h-8 rounded-full border-2 border-indigo-500 flex items-center justify-center text-[7px]">60%</div>
+                              <div className="text-[9px] text-slate-400 font-bold uppercase">Equity<br/>Focused</div>
+                          </div>
+                      </div>
+                  </div>
+              </div>
+            </div>
+
+            {/* Content */}
+            <div className="text-center lg:text-left">
+              <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-emerald-500/10 border border-emerald-500/20 rounded-full mb-8">
+                <span className="text-[9px] font-black uppercase tracking-widest text-emerald-400">Financial Sovereignty</span>
+              </div>
+              
+              <h2 className="text-[3rem] md:text-[5.5rem] font-black tracking-tighter text-white leading-[0.9] mb-8 italic">
+                Wealth <br/>
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-indigo-400 not-italic">
+                   Architecture.
+                </span>
+              </h2>
+              
+              <p className="text-lg text-slate-400 mb-10 leading-relaxed font-medium max-w-xl mx-auto lg:mx-0">
+                 Beyond simple budgeting. A strategic ledger for capital deployment, asset allocation, and liquidity tracking. Gain absolute clarity on your financial trajectory.
+              </p>
+
+              <ul className="space-y-4 mb-10 text-left max-w-md mx-auto lg:mx-0">
+                 {[
+                   { label: 'Network Liquidity Matrix', desc: 'Track credit, debt, and outstanding obligations in real-time.' },
+                   { label: 'Capital Deployment Hub', desc: 'Categorize spending as investments, not just expenses.' },
+                   { label: 'Automated EMI Telemetry', desc: 'Visual progression bars for long-term liability clearance.' }
+                 ].map((item, i) => (
+                    <li key={i} className="flex gap-4">
+                        <div className="w-6 h-6 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-[10px] font-black shrink-0">✓</div>
+                        <div>
+                            <div className="text-sm font-black text-white uppercase tracking-wide">{item.label}</div>
+                            <div className="text-xs text-slate-500 font-medium">{item.desc}</div>
+                        </div>
+                    </li>
+                 ))}
+              </ul>
+
+              <button 
+                onClick={onStart}
+                className="bg-white text-[#111] px-8 py-4 rounded-xl text-xs font-black uppercase tracking-[0.2em] hover:bg-emerald-400 hover:scale-105 transition-all shadow-[0_0_30px_rgba(255,255,255,0.1)]"
+              >
+                Open Ledger
+              </button>
+            </div>
+         </div>
       </section>
 
       {/* 4. ARCHITECTURE SECTION */}
@@ -227,7 +313,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStart }) => {
               <span className="text-sm md:text-lg text-slate-200 line-through font-black">₹199</span>
             </div>
             <ul className="space-y-4 md:space-y-6 mb-12 md:mb-16">
-              {['Daily Ritual Matrix', 'Performance Telemetry', 'Cloud Sync Protocol'].map((f) => (
+              {['Daily Ritual Matrix', 'Performance Telemetry', 'Financial Ledger', 'Cloud Sync Protocol'].map((f) => (
                 <li key={f} className="flex items-center gap-3 md:gap-4 text-[10px] md:text-xs font-black uppercase tracking-widest text-slate-500">
                   <span className="text-indigo-600">✓</span> {f}
                 </li>
@@ -246,7 +332,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStart }) => {
               <span className="text-sm md:text-lg text-slate-700 line-through font-black">₹1999</span>
             </div>
             <ul className="space-y-4 md:space-y-6 mb-12 md:mb-16">
-              {['Daily Ritual Matrix', 'Performance Telemetry', 'Cloud Sync Protocol', 'Legacy vision board'].map((f) => (
+              {['Daily Ritual Matrix', 'Wealth Architecture', 'Asset Matrix', 'Legacy vision board'].map((f) => (
                 <li key={f} className="flex items-center gap-3 md:gap-4 text-[10px] md:text-xs font-black uppercase tracking-widest text-slate-400">
                   <span className="text-[#76C7C0]">✓</span> {f}
                 </li>
