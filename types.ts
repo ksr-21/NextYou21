@@ -35,10 +35,20 @@ export interface Transaction {
   date: string;
   desc: string;
   amount: number;
-  type: 'income' | 'expense' | 'borrow' | 'lend';
+  type: 'income' | 'expense' | 'borrow' | 'lend' | 'investment' | 'subscription' | 'emi_payment';
   category: string;
   status?: 'pending' | 'settled';
   settledAt?: string;
+}
+
+export interface EMI {
+  id: string;
+  desc: string;
+  amount: number;
+  totalInstallments: number;
+  paidInstallments: number;
+  frequency: 'monthly' | 'weekly';
+  startDate: string;
 }
 
 export interface BudgetLimit {
@@ -49,6 +59,7 @@ export interface BudgetLimit {
 export interface FinanceData {
   transactions: Transaction[];
   budgetLimits: BudgetLimit[];
+  emis: EMI[];
 }
 
 export interface HabitTemplate {

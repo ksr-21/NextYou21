@@ -11,7 +11,7 @@ import { AdminPage } from './pages/AdminPage.tsx';
 import { CreateHabitModal } from './components/CreateHabitModal.tsx';
 import { INITIAL_HABITS, MONTHLY_GOALS, ANNUAL_CATEGORIES, INITIAL_WEEKLY_GOALS, MONTHS_LIST } from './constants.tsx';
 import { auth, db } from './services/firebase.ts';
-import { Habit, Tab, MonthlyGoal, AnnualCategory, PlannerConfig, WeeklyGoal, Transaction, BudgetLimit } from './types.ts';
+import { Habit, Tab, MonthlyGoal, AnnualCategory, PlannerConfig, WeeklyGoal, Transaction, BudgetLimit, EMI } from './types.ts';
 
 const ADMIN_EMAIL = 'admin@nextyou21.io';
 
@@ -41,6 +41,7 @@ const App: React.FC = () => {
   const [annualCategories, setAnnualCategories] = useState<AnnualCategory[]>(ANNUAL_CATEGORIES);
   const [financeTransactions, setFinanceTransactions] = useState<Transaction[]>([]);
   const [budgetLimits, setBudgetLimits] = useState<BudgetLimit[]>([]);
+  const [emis, setEmis] = useState<EMI[]>([]);
   const [config, setConfig] = useState<PlannerConfig>({
     year: '2026',
     showVisionBoard: true,
@@ -125,6 +126,7 @@ const App: React.FC = () => {
             if (data.annualCategories) setAnnualCategories(data.annualCategories);
             if (data.financeTransactions) setFinanceTransactions(data.financeTransactions);
             if (data.budgetLimits) setBudgetLimits(data.budgetLimits);
+            if (data.emis) setEmis(data.emis);
             if (data.config) setConfig(prev => ({ ...prev, ...data.config }));
           }
         }
@@ -269,6 +271,7 @@ const App: React.FC = () => {
           <FinanceView 
             transactions={financeTransactions}
             budgetLimits={budgetLimits}
+            emis={emis}
             categories={config.financeCategories || { income: [], expense: [] }}
             onUpdateCategories={(newCats) => {
               const newConf = { ...config, financeCategories: newCats };
@@ -291,6 +294,18 @@ const App: React.FC = () => {
               const idx = budgetLimits.findIndex(l => l.category === cat);
               const nbl = idx > -1 ? budgetLimits.map((l, i) => i === idx ? { ...l, limit: lim } : l) : [...budgetLimits, { category: cat, limit: lim }];
               setBudgetLimits(nbl); syncToCloud({ budgetLimits: nbl });
+            }}
+            onAddEMI={(emi) => {
+              const ne = [...emis, { ...emi, id: Math.random().toString(36).substr(2, 9) }];
+              setEmis(ne); syncToCloud({ emis: ne });
+            }}
+            onUpdateEMI={(id, updates) => {
+              const ne = emis.map(e => e.id === id ? { ...e, ...updates } : e);
+              setEmis(ne); syncToCloud({ emis: ne });
+            }}
+            onDeleteEMI={(id) => {
+              const ne = emis.filter(e => e.id !== id);
+              setEmis(ne); syncToCloud({ emis: ne });
             }}
           />
         );
