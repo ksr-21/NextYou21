@@ -80,6 +80,10 @@ export const FinanceView: React.FC<FinanceViewProps> = ({
   // UX State
   const [expandedEntity, setExpandedEntity] = useState<string | null>(null);
 
+  // --- ZONES MANAGER STATE (NEW) ---
+  const [newZoneName, setNewZoneName] = useState('');
+  const [activeZoneTab, setActiveZoneTab] = useState<'income' | 'expense'>('expense');
+
   // --- STATISTICS ENGINE ---
   const stats = useMemo(() => {
     // 1. Time Filtering
@@ -127,7 +131,7 @@ export const FinanceView: React.FC<FinanceViewProps> = ({
       });
     }
 
-    // 4. Advanced Entity Aggregation (Credit/Debt) - CASE INSENSITIVE
+    // 4. Advanced Entity Aggregation (Credit/Debt)
     const entityMap: Record<string, { 
       name: string, 
       borrowed: number, 
@@ -142,11 +146,9 @@ export const FinanceView: React.FC<FinanceViewProps> = ({
       let rawName = t.desc.includes(':') ? t.desc.split(':')[0] : t.desc;
       rawName = rawName.trim();
       
-      // Normalize to lowercase for grouping
       const entityKey = rawName.toLowerCase();
       
       if (!entityMap[entityKey]) {
-        // Use the first found rawName for display
         entityMap[entityKey] = { name: rawName, borrowed: 0, lent: 0, net: 0, history: [] };
       }
       
@@ -288,6 +290,26 @@ export const FinanceView: React.FC<FinanceViewProps> = ({
     onUpdateTransaction(id, { status: 'settled', settledAt: new Date().toISOString() });
   };
 
+  // --- ZONE MANAGER HANDLERS ---
+  const handleAddZone = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newZoneName.trim()) return;
+    
+    const updatedCats = { ...categories };
+    // Prevent duplicates
+    if (updatedCats[activeZoneTab].includes(newZoneName.trim())) return;
+    
+    updatedCats[activeZoneTab] = [...updatedCats[activeZoneTab], newZoneName.trim()];
+    onUpdateCategories(updatedCats);
+    setNewZoneName('');
+  };
+
+  const handleDeleteZone = (zoneName: string) => {
+    const updatedCats = { ...categories };
+    updatedCats[activeZoneTab] = updatedCats[activeZoneTab].filter(c => c !== zoneName);
+    onUpdateCategories(updatedCats);
+  };
+
   const typeStyles: Record<string, string> = {
     income: 'bg-[#76C7C0] shadow-emerald-200',
     expense: 'bg-[#111827] shadow-slate-300',
@@ -424,14 +446,13 @@ export const FinanceView: React.FC<FinanceViewProps> = ({
           </div>
         </div>
 
-        {/* Entity Grid - SHOWS ALL, even settled */}
+        {/* Entity Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {stats.entities.map(entity => {
             const isSettled = entity.net === 0;
             const isPositive = entity.net > 0;
             const isExpanded = expandedEntity === entity.name;
 
-            // Styles based on state
             let boxClass = 'bg-white hover:bg-slate-50 border-slate-100';
             let iconClass = isSettled ? 'bg-slate-100 text-slate-400' : (isPositive ? 'bg-emerald-100 text-emerald-600' : 'bg-amber-100 text-amber-600');
             let textClass = isSettled ? 'text-slate-400' : (isPositive ? 'text-emerald-500' : 'text-amber-500');
@@ -563,7 +584,7 @@ export const FinanceView: React.FC<FinanceViewProps> = ({
             </div>
           </section>
 
-          {/* SECTOR THRESHOLDS - UPDATED INPUT WIDTH */}
+          {/* SECTOR THRESHOLDS */}
           <section className="bg-white p-5 rounded-3xl border border-slate-100 shadow-sm flex flex-col gap-4">
             <div className="flex justify-between items-center border-b border-slate-50 pb-3">
                 <h3 className="text-[10px] font-black uppercase text-slate-400 italic tracking-widest">Budget Zones</h3>
@@ -685,7 +706,7 @@ export const FinanceView: React.FC<FinanceViewProps> = ({
          </div>
       </section>
 
-      {/* 8. STRATEGY LEDGER HISTORY (WITH FILTERS) */}
+      {/* 8. STRATEGY LEDGER HISTORY */}
       <section className="bg-white p-5 rounded-3xl border border-slate-100 shadow-sm space-y-4">
            <div className="flex flex-col md:flex-row justify-between items-start md:items-center border-b border-slate-50 pb-4 gap-4">
               <div className="flex flex-col">
@@ -752,6 +773,84 @@ export const FinanceView: React.FC<FinanceViewProps> = ({
               {stats.filtered.length === 0 && <p className="text-center py-16 text-[9px] font-black text-slate-200 uppercase tracking-[0.2em]">Historical ledger is currently empty</p>}
            </div>
       </section>
+
+      {/* 9. ZONES MANAGER MODAL (ADDED) */}
+      {showCatManager && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+          <div className="bg-white w-full max-w-md rounded-3xl shadow-2xl overflow-hidden border border-slate-100">
+            {/* Modal Header */}
+            <div className="flex justify-between items-center p-5 border-b border-slate-50 bg-slate-50/50">
+              <div>
+                <h3 className="text-[11px] font-black uppercase text-slate-800 tracking-widest">Zone Manager</h3>
+                <p className="text-[9px] text-slate-400 font-bold uppercase">Configure Budget Categories</p>
+              </div>
+              <button 
+                onClick={() => setShowCatManager(false)}
+                className="w-8 h-8 flex items-center justify-center rounded-full bg-white border border-slate-100 text-slate-400 hover:text-rose-500 hover:border-rose-100 transition-all shadow-sm"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Tabs */}
+            <div className="flex p-2 gap-2 bg-white">
+              <button 
+                onClick={() => setActiveZoneTab('expense')}
+                className={`flex-1 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all ${activeZoneTab === 'expense' ? 'bg-rose-50 text-rose-600 border border-rose-100' : 'text-slate-400 hover:bg-slate-50'}`}
+              >
+                Expense Zones
+              </button>
+              <button 
+                onClick={() => setActiveZoneTab('income')}
+                className={`flex-1 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all ${activeZoneTab === 'income' ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' : 'text-slate-400 hover:bg-slate-50'}`}
+              >
+                Income Zones
+              </button>
+            </div>
+
+            {/* Zone List */}
+            <div className="h-64 overflow-y-auto p-4 space-y-2 bg-slate-50/30 no-scrollbar">
+              {categories[activeZoneTab].map(zone => (
+                <div key={zone} className="group flex justify-between items-center bg-white border border-slate-100 p-3 rounded-xl shadow-sm hover:shadow-md transition-all">
+                  <span className="text-[10px] font-bold text-slate-700 uppercase">{zone}</span>
+                  <button 
+                    onClick={() => handleDeleteZone(zone)}
+                    className="text-slate-300 hover:text-rose-500 px-2 transition-colors"
+                    title="Remove Zone"
+                  >
+                    🗑
+                  </button>
+                </div>
+              ))}
+              {categories[activeZoneTab].length === 0 && (
+                <div className="text-center py-10 opacity-40">
+                  <p className="text-[9px] font-black uppercase text-slate-400">No zones defined</p>
+                </div>
+              )}
+            </div>
+
+            {/* Add New Zone Form */}
+            <form onSubmit={handleAddZone} className="p-4 border-t border-slate-50 bg-white">
+              <div className="flex gap-2">
+                <input 
+                  type="text" 
+                  value={newZoneName}
+                  onChange={(e) => setNewZoneName(e.target.value)}
+                  placeholder={`New ${activeZoneTab} zone...`}
+                  className="flex-1 bg-slate-50 border border-slate-100 rounded-xl px-4 py-2.5 text-[10px] font-bold outline-none focus:border-indigo-300 transition-all"
+                />
+                <button 
+                  type="submit"
+                  disabled={!newZoneName}
+                  className="bg-[#111827] text-white px-5 rounded-xl text-[9px] font-black uppercase tracking-widest hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                >
+                  Add
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
