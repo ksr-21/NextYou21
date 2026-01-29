@@ -18,18 +18,18 @@ export const WallpaperView: React.FC<WallpaperViewProps> = ({ habits }) => {
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
-  // 2. Clock Timer
+  // 2. Real-time Clock
   useEffect(() => {
     const timer = setInterval(() => setTime(new Date()), 1000);
     return () => clearInterval(timer);
   }, []);
 
-  // 3. Data Processing Engine
+  // 3. Data Processing
   const { points, stats } = useMemo(() => {
     const year = new Date().getFullYear();
     const today = new Date();
     const startOfYear = new Date(year, 0, 1);
-    const dayOffset = startOfYear.getDay(); // 0 = Sun
+    const dayOffset = startOfYear.getDay(); 
     
     let totalScore = 0;
     let daysCounted = 0;
@@ -41,11 +41,9 @@ export const WallpaperView: React.FC<WallpaperViewProps> = ({ habits }) => {
         const diff = d.getTime() - startOfYear.getTime();
         const dayOfYear = Math.floor(diff / (1000 * 60 * 60 * 24)) + 1;
         
-        // Grid Logic
         const colIndex = Math.floor((dayOfYear + dayOffset - 1) / 7);
         const rowIndex = d.getDay();
 
-        // Stats
         const monthName = MONTHS_LIST[d.getMonth()];
         const dayNum = d.getDate();
         const activeHabits = habits.filter(h => h.activeMonths.includes(monthName));
@@ -76,14 +74,11 @@ export const WallpaperView: React.FC<WallpaperViewProps> = ({ habits }) => {
     }
 
     const efficiency = daysCounted > 0 ? Math.round((totalScore / daysCounted) * 100) : 0;
-    
-    // Days Remaining Calculation
     const endOfYear = new Date(year, 11, 31);
     const timeDiff = endOfYear.getTime() - today.getTime();
     const daysRemaining = Math.ceil(timeDiff / (1000 * 3600 * 24));
-    const daysPassed = Math.floor((today.getTime() - startOfYear.getTime()) / (1000 * 60 * 60 * 24));
 
-    return { points: dataPoints, stats: { efficiency, daysRemaining, daysPassed } };
+    return { points: dataPoints, stats: { efficiency, daysRemaining } };
   }, [habits, time]);
 
   // 4. SVG Config
@@ -91,7 +86,6 @@ export const WallpaperView: React.FC<WallpaperViewProps> = ({ habits }) => {
   const GAP = 2;
   const RADIUS = 6;
   
-  // Adaptive ViewBox
   const width = isMobile ? 27 * (CELL_SIZE + GAP) : 53 * (CELL_SIZE + GAP);
   const height = isMobile ? 16 * (CELL_SIZE + GAP) : 7 * (CELL_SIZE + GAP);
 
@@ -107,77 +101,80 @@ export const WallpaperView: React.FC<WallpaperViewProps> = ({ habits }) => {
   };
 
   const getColors = (p: any) => {
-    if (p.isFuture) return { fill: '#0f0f10', text: '#3f3f46', stroke: '#27272a' }; // Almost black
-    if (p.isToday) return { fill: '#ffffff', text: '#000000', stroke: '#ffffff' }; // White
+    if (p.isFuture) return { fill: '#0f0f10', text: '#333', stroke: '#1a1a1a' };
+    if (p.isToday) return { fill: '#ffffff', text: '#000000', stroke: '#ffffff' };
     
-    if (p.ratio === 0) return { fill: '#27272a', text: '#52525b', stroke: 'none' };
-    if (p.ratio < 0.5) return { fill: '#1e3a8a', text: '#93c5fd', stroke: 'none' }; // Dark Blue
-    if (p.ratio < 0.8) return { fill: '#2563eb', text: '#ffffff', stroke: 'none' }; // Blue
-    return { fill: '#06b6d4', text: '#000000', stroke: 'none' }; // Cyan
+    if (p.ratio === 0) return { fill: '#1a1a1a', text: '#444', stroke: 'none' };
+    if (p.ratio < 0.5) return { fill: '#1e3a8a', text: '#93c5fd', stroke: 'none' };
+    if (p.ratio < 0.8) return { fill: '#2563eb', text: '#ffffff', stroke: 'none' };
+    return { fill: '#06b6d4', text: '#000000', stroke: 'none' };
   };
 
   return (
-    <div className="fixed inset-0 w-screen h-screen bg-[#050505] text-white font-sans flex flex-col p-4 md:p-6 overflow-hidden select-none">
+    <div className="fixed inset-0 w-screen h-screen bg-[#000000] text-white font-sans flex flex-col p-6 overflow-hidden select-none cursor-default">
       
-      {/* --- TOP BAR (DASHBOARD) --- */}
+      {/* --- TOP DASHBOARD --- */}
       <header className="flex-none grid grid-cols-3 items-end pb-4 border-b border-[#222] mb-4">
          
-         {/* LEFT: Date & Year */}
+         {/* LEFT: Date */}
          <div className="flex flex-col justify-end">
-            <h1 className="text-4xl md:text-6xl font-black tracking-tighter leading-none text-white">
+            <h1 className="text-[5vw] xl:text-7xl font-black tracking-tighter leading-none text-white">
                 {time.getFullYear()}
             </h1>
-            <div className="text-xs md:text-sm font-bold text-neutral-500 uppercase tracking-widest mt-1">
-                {time.toLocaleDateString('en-US', { weekday: 'short', month: 'long', day: 'numeric' })}
+            <div className="text-sm font-bold text-neutral-500 uppercase tracking-widest mt-1">
+                {time.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
             </div>
          </div>
 
-         {/* CENTER: Time (Hidden on very small screens, centered on desktop) */}
+         {/* CENTER: Time */}
          <div className="flex flex-col items-center justify-end">
-            <div className="text-3xl md:text-5xl font-mono font-medium text-white tabular-nums tracking-tight leading-none">
+            <div className="text-[4vw] xl:text-6xl font-mono font-medium text-white tabular-nums tracking-tight leading-none">
                 {time.toLocaleTimeString('en-US', { hour12: false })}
             </div>
-            <div className="text-[10px] md:text-xs font-bold text-cyan-500 uppercase tracking-widest mt-1 animate-pulse">
-                System Active
+            <div className="flex items-center gap-2 mt-2">
+                <span className="relative flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-cyan-500"></span>
+                </span>
+                <span className="text-[10px] font-bold text-cyan-500 uppercase tracking-widest">
+                    Live System
+                </span>
             </div>
          </div>
 
          {/* RIGHT: Stats */}
          <div className="flex flex-col items-end justify-end">
-             {/* Countdown */}
             <div className="flex items-baseline gap-1">
-                <span className="text-2xl md:text-4xl font-bold text-white tabular-nums leading-none">
+                <span className="text-[3vw] xl:text-5xl font-bold text-white tabular-nums leading-none">
                     {stats.daysRemaining}
                 </span>
-                <span className="text-[10px] md:text-xs font-bold text-neutral-500 uppercase">Days Left</span>
+                <span className="text-xs font-bold text-neutral-500 uppercase">Days Left</span>
             </div>
             
-            {/* Efficiency */}
-            <div className="flex items-center gap-2 mt-1">
-                <div className="h-1 w-12 bg-neutral-800 rounded-full overflow-hidden">
-                    <div className="h-full bg-cyan-400" style={{ width: `${stats.efficiency}%` }}></div>
+            <div className="flex items-center gap-2 mt-2">
+                <div className="h-1.5 w-16 bg-neutral-800 rounded-full overflow-hidden">
+                    <div className="h-full bg-cyan-400 transition-all duration-1000" style={{ width: `${stats.efficiency}%` }}></div>
                 </div>
-                <div className="text-[10px] md:text-xs font-bold text-cyan-400 uppercase tracking-wider">
+                <div className="text-xs font-bold text-cyan-400 uppercase tracking-wider">
                     {stats.efficiency}% Efficiency
                 </div>
             </div>
          </div>
       </header>
 
-      {/* --- SVG GRID --- */}
+      {/* --- LIVE GRID --- */}
       <main className="flex-1 w-full h-full flex items-center justify-center min-h-0 relative">
         <svg 
             viewBox={`0 0 ${width} ${height}`} 
             preserveAspectRatio="xMidYMid meet" 
-            className="w-full h-full max-h-full drop-shadow-[0_0_10px_rgba(255,255,255,0.05)]"
+            className="w-full h-full max-h-full drop-shadow-[0_0_15px_rgba(6,182,212,0.1)]"
         >
             {points.map((p, i) => {
                 const pos = getPosition(p.colIndex, p.rowIndex);
                 const colors = getColors(p);
                 
                 return (
-                    <g key={i} className="group transition-all duration-300">
-                        {/* Circle */}
+                    <g key={i}>
                         <circle 
                             cx={pos.x + RADIUS} 
                             cy={pos.y + RADIUS} 
@@ -187,8 +184,6 @@ export const WallpaperView: React.FC<WallpaperViewProps> = ({ habits }) => {
                             strokeWidth={0.5}
                             className={`transition-all duration-500 ${p.isToday ? 'animate-pulse' : ''}`}
                         />
-                        
-                        {/* Day Number (1-365) */}
                         <text 
                             x={pos.x + RADIUS} 
                             y={pos.y + RADIUS} 
@@ -197,47 +192,26 @@ export const WallpaperView: React.FC<WallpaperViewProps> = ({ habits }) => {
                             fontSize={p.dayOfYear > 99 ? "4.5" : "5.5"}
                             fill={colors.text}
                             fontWeight="800"
-                            style={{ pointerEvents: 'none' }}
                         >
                             {p.dayOfYear}
                         </text>
-
-                        {/* Tooltip Trigger Area */}
-                        <rect x={pos.x} y={pos.y} width={CELL_SIZE} height={CELL_SIZE} fill="transparent" />
-                        
-                        {/* SVG Tooltip */}
-                        <g className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-50">
-                             <rect 
-                                x={pos.x - 24} 
-                                y={pos.y - 20} 
-                                width="60" 
-                                height="16" 
-                                rx="3" 
-                                fill="#111" 
-                                stroke="#333"
-                                strokeWidth="0.5"
-                             />
-                             <text x={pos.x + 6} y={pos.y - 9} fontSize="6" fill="#fff" textAnchor="middle" fontWeight="bold">
-                                {p.monthName.substring(0,3)} {p.dayNum} • {Math.round(p.ratio*100)}%
-                             </text>
-                        </g>
                     </g>
                 );
             })}
         </svg>
       </main>
 
-      {/* --- FOOTER (Minimal Legend) --- */}
-      <footer className="flex-none pt-2 flex justify-center items-center">
-         <div className="flex items-center gap-3 bg-[#111] border border-[#222] px-4 py-1 rounded-full">
-            <span className="text-[9px] font-bold uppercase text-neutral-500">Less</span>
+      {/* --- FOOTER --- */}
+      <footer className="flex-none pt-2 flex justify-center items-center opacity-50">
+         <div className="flex items-center gap-3">
+            <span className="text-[9px] font-bold uppercase text-neutral-600">Off</span>
             <div className="flex gap-1">
-               <div className="w-2 h-2 rounded-full bg-[#27272a]" />
-               <div className="w-2 h-2 rounded-full bg-[#1e3a8a]" />
-               <div className="w-2 h-2 rounded-full bg-[#2563eb]" />
-               <div className="w-2 h-2 rounded-full bg-[#06b6d4] shadow-[0_0_5px_rgba(6,182,212,0.8)]" />
+               <div className="w-1.5 h-1.5 rounded-full bg-[#1a1a1a]" />
+               <div className="w-1.5 h-1.5 rounded-full bg-[#1e3a8a]" />
+               <div className="w-1.5 h-1.5 rounded-full bg-[#2563eb]" />
+               <div className="w-1.5 h-1.5 rounded-full bg-[#06b6d4]" />
             </div>
-            <span className="text-[9px] font-bold uppercase text-neutral-500">More</span>
+            <span className="text-[9px] font-bold uppercase text-neutral-600">On</span>
          </div>
       </footer>
     </div>
